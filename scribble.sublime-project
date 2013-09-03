@@ -1,0 +1,27 @@
+{
+	"folders":
+	[
+		{
+			"path": "./",
+            "file_exclude_patterns": [
+                "pom.xml",
+                "pom.xml.asc",
+                "*.jar",
+                "*.class",
+                ".lein-deps-sum",
+                ".lein-failures",
+                ".lein-plugins",
+                ".lein-repl-history",
+                "*.sublime-workspace"
+            ],
+            "folder_exclude_patterns": [
+                "target",
+                "classes",
+                "checkouts"
+            ]
+		},
+		{
+			"path": "/Volumes/Data/Workbench/repos/clarity/src/clarity"
+		}
+	]
+}
