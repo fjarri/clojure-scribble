@@ -13,6 +13,7 @@
 (def scribble-normal-end \])
 (def scribble-symbol-start \|)
 (def scribble-symbol-end \|)
+(def scribble-comment \;)
 
 
 (defn reader-position [reader]
@@ -46,43 +47,55 @@
       (println "* read-delimited-list:" (repr form))
       form)))
 
+(defn discard-whitespace [v n]
+  (println "-- discard whitespace" (count v) n (< (dec n) (count v)))
+  (if (< (dec n) (count v))
+    (subvec v n)
+    []))
+
 (declare scribble-entry-reader)
+
+(defn dump-nested-form [vec-accum str-accum nested-form]
+  (if (nil? nested-form)
+    ; it was a comment
+    [vec-accum str-accum]
+    ; an actual form
+    (let [new-vec-accum (dump-accum vec-accum str-accum)]
+      [(conj new-vec-accum nested-form) []])))
 
 ; Returns a vector of strings and nested forms.
 ; The strings are separated as [leading whitespace, contents, trailing whitespace, newline]
 ; (for the ease of further processing).
-(defn scribble-text-reader [reader]
+(defn scribble-text-reader [reader column]
   (println "- In scribble-text-reader")
   (loop [vec-accum []
          str-accum []
-         leading-ws false]
+         leading-ws false
+         newline-encountered false]
     (let [c (my-read-1 reader)]
       (cond
         ; end of text mode
         (= c scribble-text-end) (dump-accum vec-accum str-accum)
         ; start of a Scribble form
-        (= c scribble-char) (let [new-vec-accum (dump-accum vec-accum str-accum)
-                                  nested-form (scribble-entry-reader reader c)]
+        (= c scribble-char) (let [nested-form (scribble-entry-reader reader c)
+                                  [vec-accum str-accum] (dump-nested-form vec-accum str-accum nested-form)]
           (println "-- nested form" (repr nested-form))
-          (recur (conj new-vec-accum nested-form) [] true))
+          (recur vec-accum str-accum leading-ws newline-encountered))
         ; unexpected EOF
         (nil? c) (throw (ex-info "Unexpected EOF while in text reading mode"))
         ; newline encountered: dump accumulator, turn leading whitespace mode on
-        (= c \newline) (recur (conj (dump-accum vec-accum str-accum (not leading-ws)) "\n") [] true)
+        (and leading-ws (= c \newline)) (recur (conj vec-accum "\n") [] true true)
+        (= c \newline) (recur (conj (dump-accum vec-accum str-accum true) "\n") [] true true)
         ; in leading whitespace mode, whitespace character encountered
-        (and leading-ws (whitespace? c)) (recur vec-accum (conj str-accum c) true)
-        ; in leading whitespace mode, non-whitespace character encountered
-        (true? leading-ws) (recur (dump-accum vec-accum str-accum) [c] false)
+        (and leading-ws (whitespace? c)) (recur vec-accum (conj str-accum c) true newline-encountered)
+        ; In leading whitespace mode, non-whitespace character encountered;
+        ; need to discard `column` characters of the leading whitespace
+        ; if there has been at least one newline in this text form.
+        (and leading-ws newline-encountered (not (nil? column)))
+          (recur (dump-accum vec-accum (discard-whitespace str-accum column)) [c] false newline-encountered)
+        (true? leading-ws) (recur (dump-accum vec-accum str-accum) [c] false newline-encountered)
         ; reading characters
-        :else (recur vec-accum (conj str-accum c) false)))))
-
-
-; Gets a vector with text parts (with \n's as separate pieces) and nested forms,
-; and the column of the starting character of the text.
-; Performs the following tasks:
-; 1)
-(defn postprocess-text [raw-text column]
-  raw-text)
+        :else (recur vec-accum (conj str-accum c) false newline-encountered)))))
 
 (defn scribble-normal-reader [reader]
   (println "- In scribble-normal-reader")
@@ -95,8 +108,7 @@
   (let [c (my-read-1 reader)]
     (condp = c
       scribble-text-start (let [[_ column] (reader-position reader)
-                                raw-text (scribble-text-reader reader)
-                                form (postprocess-text raw-text column)
+                                form (scribble-text-reader reader column)
                                 forms-read (concat forms-read (list form))]
         (scribble-form-reader reader forms-read))
       scribble-normal-start (let [forms (my-read-delimited-list scribble-normal-end reader)
@@ -105,12 +117,20 @@
       nil forms-read
       (do (reader-utils/unread reader c) forms-read))))
 
+(defn skip-to-next-line [reader]
+  (loop []
+    (let [c (reader-utils/read-1 reader)]
+      (if-not (= \newline c)
+        (recur)))))
+
 (defn scribble-entry-reader [reader _]
   (println "- In scribble-entry-reader")
   (let [c (my-peek reader)]
     (condp = c
+      scribble-comment (do (skip-to-next-line reader) (reader-utils/unread reader \newline) nil)
       (let [sym (my-read-next reader)
             forms (scribble-form-reader reader ())]
+        (println "-- entry-reader finished " (repr (cons sym forms)))
         (cons sym forms)))))
 
 (defn use-scribble []
