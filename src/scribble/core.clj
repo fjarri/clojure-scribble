@@ -113,5 +113,8 @@
             forms (scribble-form-reader reader ())]
         (cons sym forms)))))
 
+(defn use-scribble []
+  (use-reader-macros {:char scribble-char :reader scribble-entry-reader}))
+
 (defmacro with-scribble [& forms]
   `(with-reader-macro scribble-char scribble-entry-reader (do ~@forms)))
