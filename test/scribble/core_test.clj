@@ -11,6 +11,7 @@
 
 
 ; Tests for the reader macro
+; Mostly taken from http://docs.racket-lang.org/scribble/reader.html
 
 (def forms [
 
@@ -27,18 +28,33 @@
   ['@foo[:width 2]{blah blah}
    '(foo :width 2 ["blah blah"])]
 
+  ; If the beginning { is followed by something other than \n, all indentation is counted from it.
+  ; If the indentation of the line is bigger, the base indentation is subtracted from it.
+  ; If it is smaller, it is discarder completely.
+  ; NOTE: currently 1 \tab = 1 \space. Clojure's reader counts \tab as one symbol anyway.
   ['@foo{blah blah
-         yada yada}
+         yada yada
+           ddd
+       ttt}
    '(foo ["blah blah" "\n"
-      "yada yada"])]
+      "yada yada" "\n"
+      "  " "ddd" "\n"
+      "ttt"])]
 
+  ; If the beginning { is directly followed by \n,
+  ; The starting indentation is taken from the next line.
+  ; Same rules as before apply for the remaining lines.
   ['@foo{
       blah blah
       yada yada
+        ddd
+    ttt
    }
    '(foo [
       "blah blah" "\n"
-      "yada yada"])]
+      "yada yada" "\n"
+      "  " "ddd" "\n"
+      "ttt"])]
 
   ['@foo{bar @baz{3}
          blah}
@@ -55,8 +71,20 @@
    '(C ["while (*(p++))" "\n"
       "*p = '\\n';"])]
 
+  ; difference from the original Scribble syntax: @; is a normal comment,
+  ; @;; is a TeX-like (whitespace-consuming) comment
+
+  ; this also tests that the whitespace right before the newline
+  ; (see the first line) is discarded.
   ['@foo{bar @; comment
          baz@;
+         blah}
+   '(foo ["bar" "\n"
+      "baz" "\n"
+      "blah"])]
+
+  ['@foo{bar @;; comment
+         baz@;;
          blah}
    '(foo ["bar bazblah"])]
 
