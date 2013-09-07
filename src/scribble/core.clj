@@ -20,13 +20,12 @@
 ;; - Other significant characters (brackets, braces, literal symbol quotes)
 ;;   may be changed as well.
 (ns scribble.core
-  (:use [clarity.reader.hacking :only [with-reader-macro]])
-  (:use [clarity.reader.macros :only [use-reader-macros]])
-  (:require [clarity.reader.utils :as reader-methods])
   (:import [clojure.lang Util LispReader LineNumberingPushbackReader])
-  (:require [scribble.text-accum :refer :all])
-  (:require [scribble.postprocess :refer :all])
-  (:require [scribble.repr :refer :all]))
+  (:use [clarity.reader.hacking :only [with-reader-macro]]
+        [clarity.reader.macros :only [use-reader-macros]])
+  (:require [clarity.reader.utils :as reader-methods]
+            [scribble.text-accum :refer :all]
+            [scribble.postprocess :refer :all]))
 
 
 (defn whitespace? [c]
