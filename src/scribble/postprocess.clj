@@ -65,12 +65,10 @@
             :else (id v)))))))
 
 (defn trim-whitespace-pred [indent token]
-  (if (.trailing-ws? token)
-    nil
+  (when-not (.trailing-ws? token)
     (if (.leading-ws? token)
-      (if (> (count (.contents token)) indent)
-        (map-contents #(subs % indent) token)
-        nil)
+      (when (> (count (.contents token)) indent)
+        (map-contents #(subs % indent) token))
       token)))
 
 (defn trim-whitespace [v indent]

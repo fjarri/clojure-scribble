@@ -22,7 +22,7 @@
 (ns scribble.core
   (:use [clarity.reader.hacking :only [with-reader-macro]])
   (:use [clarity.reader.macros :only [use-reader-macros]])
-  (:require [clarity.reader.utils :as reader-utils])
+  (:require [clarity.reader.utils :as reader-methods])
   (:import [clojure.lang Util LispReader LineNumberingPushbackReader])
   (:require [scribble.accumulators :refer :all])
   (:require [scribble.postprocess :refer :all])
@@ -85,37 +85,6 @@
   (if (instance? clojure.lang.LineNumberingPushbackReader reader)
     [(-> reader .getLineNumber int) (-> reader .getColumnNumber dec int)]))
 
-
-(defn my-peek [reader]
-  (let [c (reader-utils/peek reader)]
-    (do
-      (println "* peek:" c)
-      c)))
-
-(defn my-read-1 [reader]
-  (let [c (reader-utils/read-1 reader)]
-    (do
-      (println "* read-1:" c)
-      c)))
-
-(defn my-read-next [reader]
-  (println "* reading next starting from" (reader-utils/peek reader))
-  (let [form (reader-utils/read-next reader)]
-    (do
-      (println "* read-next:" (repr form))
-      form)))
-
-(defn my-unread [reader c]
-  (println "* unread:" c)
-  (reader-utils/unread reader c))
-
-(defn my-read-delimited-list [delim reader]
-  (println "* reading delimited list starting from" (reader-utils/peek reader))
-  (let [form (reader-utils/read-delimited-list delim reader)]
-    (do
-      (println "* read-delimited-list:" (repr form))
-      form)))
-
 (defn reader-error [reader message]
   (let [[l c] (reader-position reader)]
     (ex-info message {:line l :column c})))
@@ -127,26 +96,25 @@
   The strings are separated as [leading whitespace, contents, trailing whitespace, newline]
   (for the ease of further processing)."
   [reader escaped]
-  (println "* scribble-text-reader" escaped)
   (loop [text-accum []
          str-accum []
          ; FIXME: using a custom type will be faster
          state {:leading-ws true
                 :brace-level 0
                 :escaped-scribble-char false}]
-    (let [c (my-read-1 reader)]
+    (let [c (reader-methods/read-1 reader)]
       (cond
 
         ; Starting text-mode symbol
         ; We allow them to appear un-escaped if they are balanced
         (and (not escaped) (= c scribble-text-start))
           (recur text-accum (conj str-accum c)
-            (assoc state :brace-level (inc (:brace-level state))))
+            (update-in state [:brace-level] inc))
 
         ; end of text mode
         (or
           (and (not escaped) (zero? (:brace-level state)) (= c scribble-text-end))
-          (and escaped (= c scribble-text-end) (= (my-peek reader) scribble-verbatim-end)))
+          (and escaped (= c scribble-text-end) (= (reader-methods/peek reader) scribble-verbatim-end)))
           (if (:leading-ws state)
             (dump-leading-ws text-accum str-accum)
             (dump-string text-accum str-accum))
@@ -156,11 +124,11 @@
             (assoc state :leading-ws false :brace-level (dec (:brace-level state))))
         (and (not escaped) (= c scribble-text-end))
           (recur text-accum (conj str-accum c)
-            (assoc state :brace-level (dec (:brace-level state))))
+            (update-in state [:brace-level] dec))
 
         ; start of a Scribble form
         (and (= c scribble-verbatim-start) escaped)
-          (if (= (my-peek reader) scribble-char)
+          (if (= (reader-methods/peek reader) scribble-char)
             (recur text-accum str-accum (assoc state :escaped-scribble-char true))
             (recur text-accum (conj str-accum c) state))
         (and (= c scribble-char) (or (not escaped) (:escaped-scribble-char state)))
@@ -190,19 +158,13 @@
         ; reading characters
         :else (recur text-accum (conj str-accum c) state)))))
 
-(defn scribble-normal-reader [reader]
-  (println "- In scribble-normal-reader")
-  (let [forms (my-read-delimited-list scribble-normal-end reader)
-        _ (my-read-1 reader)]
-    forms))
-
 (defn scribble-text-block-reader
   [reader escaped]
   (let [[_ column] (reader-position reader)
         text-accum (scribble-text-reader reader escaped)
         text-form (text-postprocess text-accum column)]
     (if escaped
-      (let [c (my-read-1 reader)]
+      (let [c (reader-methods/read-1 reader)]
         (if (= c scribble-verbatim-end)
           text-form
           (throw (reader-error reader "Did not find the matching end of an escaped text block"))))
@@ -211,12 +173,12 @@
 (defn read-until
   [reader stop-condition?]
   (loop [chars []]
-    (let [c (my-read-1 reader)]
+    (let [c (reader-methods/read-1 reader)]
       (cond
         (nil? c) (clojure.string/join chars)
         (stop-condition? c)
           (do
-            (my-unread reader c)
+            (reader-methods/unread reader c)
             (clojure.string/join chars))
         :else (recur (conj chars c))))))
 
@@ -224,7 +186,7 @@
   [reader end-vec]
   (let [end-vec-len (count end-vec)]
     (loop [buffer []]
-      (let [c (my-read-1 reader)
+      (let [c (reader-methods/read-1 reader)
             buffer (conj buffer c)
             buffer-len (count buffer)
             rest-len (- buffer-len end-vec-len)]
@@ -236,17 +198,17 @@
   [reader]
   (let [here-seq (read-until reader #(= % scribble-text-start))
         end-vec (concat [scribble-text-end] (inverse-vec here-seq) [scribble-verbatim-end])]
-    (my-read-1 reader) ; read `scribble-text-start`
+    (reader-methods/read-1 reader) ; read `scribble-text-start`
     [(read-until-vec reader end-vec)]))
 
 (defn scribble-form-reader
   [reader]
   (loop [forms-read []]
-    (let [c (my-read-1 reader)]
+    (let [c (reader-methods/read-1 reader)]
       (cond
-        (and (= c scribble-verbatim-start) (= (my-peek reader) scribble-text-start))
+        (and (= c scribble-verbatim-start) (= (reader-methods/peek reader) scribble-text-start))
           (do
-            (my-read-1 reader)
+            (reader-methods/read-1 reader)
             (recur (conj forms-read (scribble-text-block-reader reader true))))
         (= c scribble-verbatim-start)
           (recur (conj forms-read (scribble-verbatim-reader reader)))
@@ -254,9 +216,9 @@
           (recur (conj forms-read (scribble-text-block-reader reader false)))
         (= c scribble-normal-start)
           (recur (apply (partial conj forms-read)
-                        (my-read-delimited-list scribble-normal-end reader)))
+                        (reader-methods/read-delimited-list scribble-normal-end reader)))
         (nil? c) (list* forms-read)
-        :else (do (my-unread reader c) (list* forms-read))))))
+        :else (do (reader-methods/unread reader c) (list* forms-read))))))
 
 (defn skip-to-newline
   "Reads from `reader` until `\\newline` or `EOF` is encountered
@@ -264,10 +226,10 @@
   Returns `nil`."
   [reader]
   (loop []
-    (let [c (my-read-1 reader)]
+    (let [c (reader-methods/read-1 reader)]
       (cond
         (nil? c) nil
-        (= \newline c) (do (my-unread reader c) nil)
+        (= \newline c) (do (reader-methods/unread reader c) nil)
         :else (recur)))))
 
 (defn skip-to-meaningful-char
@@ -277,9 +239,9 @@
   Returns `nil`."
   [reader]
   (loop [newline-encountered false]
-    (let [c (my-read-1 reader)]
+    (let [c (reader-methods/read-1 reader)]
       (cond
-        (and newline-encountered (not (whitespace? c))) (do (my-unread reader c) nil)
+        (and newline-encountered (not (whitespace? c))) (do (reader-methods/unread reader c) nil)
         (= \newline c) (recur true)
         :else (recur newline-encountered)))))
 
@@ -287,21 +249,20 @@
   [reader verbatim]
   (if verbatim
     (let [sym (symbol (read-until reader #(= % scribble-verbatim-end)))]
-      (my-read-1 reader)
+      (reader-methods/read-1 reader)
       sym)
     (symbol (read-until reader symbol-end?))))
 
 (defn scribble-entry-reader
   "The entry point of the reader macro."
   [reader _]
-  (println "- In scribble-entry-reader")
-  (let [c (my-read-1 reader)]
+  (let [c (reader-methods/read-1 reader)]
     (cond
       (or (= c scribble-text-start) (= c scribble-normal-start))
         (do
-          (my-unread reader c)
+          (reader-methods/unread reader c)
           (scribble-form-reader reader))
-      (= c scribble-comment) (let [next-c (my-peek reader)]
+      (= c scribble-comment) (let [next-c (reader-methods/peek reader)]
         (if (= next-c scribble-comment)
           (skip-to-meaningful-char reader)
           (skip-to-newline reader)))
@@ -311,7 +272,7 @@
         (read-symbol reader true)
       (symbol-start? c)
         (do
-          (my-unread reader c)
+          (reader-methods/unread reader c)
           (let [command (read-symbol reader false)
                 forms (scribble-form-reader reader)]
             (if (empty? forms)
@@ -319,8 +280,8 @@
               (cons command forms))))
       :else
         (do
-          (my-unread reader c)
-          (my-read-next reader)))))
+          (reader-methods/unread reader c)
+          (reader-methods/read-next reader)))))
 
 (defn use-scribble
   "Enables the Scribble reader macro in the current namespace."
