@@ -12,7 +12,8 @@
                 ".lein-failures",
                 ".lein-plugins",
                 ".lein-repl-history",
-                "*.sublime-workspace"
+                "*.sublime-workspace",
+                ".nrepl-port"
             ],
             "folder_exclude_patterns": [
                 "target",
