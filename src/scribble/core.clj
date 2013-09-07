@@ -161,31 +161,40 @@
         (= \newline c) (recur true)
         :else (recur newline-encountered)))))
 
+(defn read-until
+  [reader delimiter]
+  (loop [chars []]
+    (let [c (my-read-1 reader)]
+      (condp = c
+        nil (throw (reader-error reader (str "Unmatched delimiter: " delimiter)))
+        delimiter (clojure.string/join chars)
+        (recur (conj chars c))))))
+
 (defn scribble-entry-reader
   "The entry point of the reader macro."
   [reader _]
   (println "- In scribble-entry-reader")
   (let [c (my-read-1 reader)]
-    (condp = c
-      scribble-text-start
+    (cond
+      (or (= c scribble-text-start) (= c scribble-normal-start))
         (do
           (reader-utils/unread reader c)
           (scribble-form-reader reader ()))
-      scribble-normal-start
-        (do
-          (reader-utils/unread reader c)
-          (scribble-form-reader reader ()))
-      scribble-comment (let [next-c (my-peek reader)]
+      (= c scribble-comment) (let [next-c (my-peek reader)]
         (if (= next-c scribble-comment)
           (skip-to-meaningful-char reader)
           (skip-to-newline reader)))
-      nil (throw (reader-error "Unexpected EOF at the start of a Scribble form"))
-      (do
+      (whitespace? c) (throw (reader-error "Unexpected whitespace at the start of a Scribble form"))
+      (nil? c) (throw (reader-error "Unexpected EOF at the start of a Scribble form"))
+      (= c scribble-symbol-start)
+        (symbol (read-until reader scribble-symbol-end))
+      :else (do
         (reader-utils/unread reader c)
-        (let [sym (my-read-next reader)
+        (let [command (my-read-next reader)
               forms (scribble-form-reader reader ())]
-          (println "-- entry-reader finished " (repr (cons sym forms)))
-          (cons sym forms))))))
+          (if (empty? forms)
+            command
+            (cons command forms)))))))
 
 (defn use-scribble
   "Enables the Scribble reader macro in the current namespace."

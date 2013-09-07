@@ -103,6 +103,20 @@
       "bar" "\n"
       "baz"])]
 
+  ; Command part only
+
+  ['@foo
+   'foo]
+  ['@{blah @foo blah}
+   '(["blah " foo " blah"])]
+  ['@{blah @foo- blah} ; ':' in identifiers has special meaning in Clojure, so changed it to '-'
+   '(["blah " foo- " blah"])]
+  ['@{blah @|foo|- blah}
+   '(["blah " foo "- blah"])]
+  ; after a '||'-delimited symbol the text mode starts right away
+  ['@{blah @|foo|[3] blah}
+   '(["blah " foo "[3] blah"])]
+
   ])
 
 (deftest test-reading
