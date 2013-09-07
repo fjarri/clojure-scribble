@@ -78,22 +78,33 @@
   [reader]
   (loop [text-accum []
          str-accum []
-         leading-ws true]
+         leading-ws true
+         brace-level 0]
     (let [c (my-read-1 reader)]
       (cond
 
+        ; Starting text-mode symbol
+        ; We allow them to appear un-escaped if they are balanced
+        (= c scribble-text-start)
+          (recur text-accum (conj str-accum c) leading-ws (inc brace-level))
+
         ; end of text mode
-        (= c scribble-text-end)
+        (and (zero? brace-level) (= c scribble-text-end))
           (if leading-ws
             (dump-leading-ws text-accum str-accum)
             (dump-string text-accum str-accum))
+
+        (and leading-ws (= c scribble-text-end))
+          (recur (dump-leading-ws text-accum str-accum) [c] false (dec brace-level))
+        (= c scribble-text-end)
+          (recur text-accum (conj str-accum c) leading-ws (dec brace-level))
 
         ; start of a Scribble form
         (= c scribble-char)
           (let [nested-form (scribble-entry-reader reader c)
                 [text-accum str-accum]
                   (dump-nested-form text-accum str-accum nested-form)]
-            (recur text-accum str-accum false))
+            (recur text-accum str-accum false brace-level))
 
         ; unexpected EOF
         (nil? c) (throw (reader-error reader "Unexpected EOF while in text reading mode"))
@@ -104,14 +115,14 @@
                  (-> text-accum
                    (dump-string str-accum :separate-trailing-ws true)
                    append-newline)]
-            (recur text-accum [] true))
+            (recur text-accum [] true brace-level))
 
         ; in leading whitespace mode, whitespace character encountered
-        (and leading-ws (whitespace? c)) (recur text-accum (conj str-accum c) true)
-        (true? leading-ws) (recur (dump-leading-ws text-accum str-accum) [c] false)
+        (and leading-ws (whitespace? c)) (recur text-accum (conj str-accum c) true brace-level)
+        leading-ws (recur (dump-leading-ws text-accum str-accum) [c] false brace-level)
 
         ; reading characters
-        :else (recur text-accum (conj str-accum c) false)))))
+        :else (recur text-accum (conj str-accum c) leading-ws brace-level)))))
 
 (defn scribble-normal-reader [reader]
   (println "- In scribble-normal-reader")

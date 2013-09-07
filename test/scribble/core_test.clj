@@ -117,6 +117,14 @@
   ['@{blah @|foo|[3] blah}
    '(["blah " foo "[3] blah"])]
 
+  ; Balanced braces do not require escaping
+  ['@C{while (*(p++)) {
+         *p = '\n';
+      }}
+   '(C ["while (*(p++)) {" "\n"
+       "  " "*p = '\\n';" "\n"
+       "}"])]
+
   ])
 
 (deftest test-reading
