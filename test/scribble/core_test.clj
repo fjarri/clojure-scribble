@@ -117,6 +117,17 @@
   ['@{blah @|foo|[3] blah}
    '(["blah " foo "[3] blah"])]
 
+  ; Arbitrary form after the Scribble character
+  ; Special case: the string gets attached to the surrounding text
+  ['@foo{(+ 1 2) -> @(+ 1 2)!}
+   '(foo ["(+ 1 2) -> " (+ 1 2) "!"])]
+  ['@foo{A @"string" escape}
+   '(foo ["A string escape"])]
+  ['@foo{eli@"@"barzilay.org}
+   '(foo ["eli@barzilay.org"])]
+  ['@foo{A @"{" begins a block}
+   '(foo ["A { begins a block"])]
+
   ; Balanced braces do not require escaping
   ['@C{while (*(p++)) {
          *p = '\n';

@@ -1,4 +1,5 @@
-(ns scribble.accumulators)
+(ns scribble.accumulators
+  (:require [scribble.repr :refer :all]))
 
 
 (defn ^:private str-accum-finalize [str-accum]
@@ -82,11 +83,16 @@
 (defn dump-nested-form
   "Need to return `str-accum` because in case of the comment we do not want to break the string."
   [text-accum str-accum nested-form]
-  (if (nil? nested-form)
+  (cond
     ; it was a comment
-    [text-accum str-accum]
+    (nil? nested-form) [text-accum str-accum]
+
+    ; it was a string: special case, append it to the accumulator
+    (string? nested-form)
+      [text-accum (vec (concat str-accum nested-form))]
+
     ; an actual form
-    (let [text-accum
+    :else (let [text-accum
            (-> text-accum
              (dump-string str-accum)
              (append-form nested-form))]
