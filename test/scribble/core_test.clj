@@ -1,6 +1,6 @@
 (ns scribble.core-test
   (:require [clojure.test :refer :all]
-            [scribble.utils :refer :all]
+            [scribble.repr :refer :all]
             [scribble.core :refer :all]))
 
 
