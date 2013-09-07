@@ -1,5 +1,4 @@
-(ns scribble.accumulators
-  (:require [scribble.repr :refer :all]))
+(ns scribble.accumulators)
 
 
 (defn ^:private str-accum-finalize [str-accum]
