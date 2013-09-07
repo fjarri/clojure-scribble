@@ -1,4 +1,4 @@
-(ns scribble.accumulators)
+(ns scribble.text-accum)
 
 
 (defn ^:private str-accum-finalize [str-accum]

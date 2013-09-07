@@ -8,7 +8,7 @@
 ;; makes the code more readable.
 
 (ns scribble.postprocess
-  (:require [scribble.accumulators :refer :all]))
+  (:require [scribble.text-accum :refer :all]))
 
 (defn id
   "Used to help the coverage tester."

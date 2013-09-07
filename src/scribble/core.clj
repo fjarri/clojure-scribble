@@ -19,13 +19,12 @@
 ;;   (not critical, providing some rare character is picked, but quite desirable).
 ;; - Other significant characters (brackets, braces, literal symbol quotes)
 ;;   may be changed as well.
-
 (ns scribble.core
   (:use [clarity.reader.hacking :only [with-reader-macro]])
   (:use [clarity.reader.macros :only [use-reader-macros]])
   (:require [clarity.reader.utils :as reader-methods])
   (:import [clojure.lang Util LispReader LineNumberingPushbackReader])
-  (:require [scribble.accumulators :refer :all])
+  (:require [scribble.text-accum :refer :all])
   (:require [scribble.postprocess :refer :all])
   (:require [scribble.repr :refer :all]))
 
