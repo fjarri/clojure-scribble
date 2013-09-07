@@ -15,6 +15,23 @@
 
 (def forms [
 
+  ; difference from the original Scribble syntax: @; is a normal comment,
+  ; @;; is a TeX-like (whitespace-consuming) comment
+
+  ; this also tests that the whitespace right before the newline
+  ; (see the first line) is discarded.
+  ['@foo{bar @; comment
+         baz@;
+         blah}
+   '(foo ["bar" "\n"
+      "baz" "\n"
+      "blah"])]
+
+  ['@foo{bar @;; comment
+         baz@;;
+         blah}
+   '(foo ["bar bazblah"])]
+
   ; The Scribble Syntax at a Glance
 
   ['@foo{blah blah blah}
@@ -56,6 +73,8 @@
       "  " "ddd" "\n"
       "ttt"])]
 
+  ; Leading newlines trimming
+
   ['@foo{bar @baz{3}
          blah}
    '(foo ["bar " (baz ["3"]) "\n"
@@ -71,22 +90,18 @@
    '(C ["while (*(p++))" "\n"
       "*p = '\\n';"])]
 
-  ; difference from the original Scribble syntax: @; is a normal comment,
-  ; @;; is a TeX-like (whitespace-consuming) comment
+  ; Missing command part
 
-  ; this also tests that the whitespace right before the newline
-  ; (see the first line) is discarded.
-  ['@foo{bar @; comment
-         baz@;
-         blah}
-   '(foo ["bar" "\n"
-      "baz" "\n"
-      "blah"])]
-
-  ['@foo{bar @;; comment
-         baz@;;
-         blah}
-   '(foo ["bar bazblah"])]
+  ['@{blah blah}
+   '(["blah blah"])]
+  ['@{blah @[3]}
+   '(["blah " (3)])]
+  ['@{foo
+      bar
+      baz}
+   '(["foo" "\n"
+      "bar" "\n"
+      "baz"])]
 
   ])
 

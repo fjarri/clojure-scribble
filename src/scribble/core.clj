@@ -167,6 +167,14 @@
   (println "- In scribble-entry-reader")
   (let [c (my-read-1 reader)]
     (condp = c
+      scribble-text-start
+        (do
+          (reader-utils/unread reader c)
+          (scribble-form-reader reader ()))
+      scribble-normal-start
+        (do
+          (reader-utils/unread reader c)
+          (scribble-form-reader reader ()))
       scribble-comment (let [next-c (my-peek reader)]
         (if (= next-c scribble-comment)
           (skip-to-meaningful-char reader)
