@@ -143,10 +143,10 @@
    '(foo ["bar " (x ["X"]) " baz"])]
   ['@foo|{bar |@x|{@}| baz}|
    '(foo ["bar " (x ["@"]) " baz"])]
-;  ['@foo|--{bar}@|{baz}--|
-;   '(foo ["bar}@|{baz"])]
-;  ['@foo|<<{bar}@|{baz}>>|
-;   '(foo ["bar}@|{baz"])]
+  ['@foo|--{bar}@|{baz}--|
+   '(foo ["bar}@|{baz"])]
+  ['@foo|<(-[{bar}@|{baz}]-)>|
+   '(foo ["bar}@|{baz"])]
 
   ])
 

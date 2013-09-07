@@ -65,6 +65,20 @@
   [c]
   (contains? scribble-symbol-end c))
 
+(defn inverse-char
+  [c]
+  (condp = c
+    \( \)
+    \) \(
+    \[ \]
+    \] \[
+    \< \>
+    \> \<
+    c))
+
+(defn inverse-vec
+  [v]
+  (vec (map inverse-char (reverse v))))
 
 
 (defn reader-position [reader]
@@ -194,9 +208,36 @@
           (throw (reader-error reader "Did not find the matching end of an escaped text block"))))
       text-form)))
 
+(defn read-until
+  [reader stop-condition?]
+  (loop [chars []]
+    (let [c (my-read-1 reader)]
+      (cond
+        (nil? c) (clojure.string/join chars)
+        (stop-condition? c)
+          (do
+            (my-unread reader c)
+            (clojure.string/join chars))
+        :else (recur (conj chars c))))))
+
+(defn read-until-vec
+  [reader end-vec]
+  (let [end-vec-len (count end-vec)]
+    (loop [buffer []]
+      (let [c (my-read-1 reader)
+            buffer (conj buffer c)
+            buffer-len (count buffer)
+            rest-len (- buffer-len end-vec-len)]
+        (if (and (> buffer-len end-vec-len) (= end-vec (subvec buffer rest-len)))
+          (clojure.string/join (subvec buffer 0 rest-len))
+          (recur buffer))))))
+
 (defn scribble-verbatim-reader
   [reader]
-  )
+  (let [here-seq (read-until reader #(= % scribble-text-start))
+        end-vec (concat [scribble-text-end] (inverse-vec here-seq) [scribble-verbatim-end])]
+    (my-read-1 reader) ; read `scribble-text-start`
+    [(read-until-vec reader end-vec)]))
 
 (defn scribble-form-reader
   [reader]
@@ -241,18 +282,6 @@
         (and newline-encountered (not (whitespace? c))) (do (my-unread reader c) nil)
         (= \newline c) (recur true)
         :else (recur newline-encountered)))))
-
-(defn read-until
-  [reader stop-condition?]
-  (loop [chars []]
-    (let [c (my-read-1 reader)]
-      (cond
-        (nil? c) (clojure.string/join chars)
-        (stop-condition? c)
-          (do
-            (my-unread reader c)
-            (clojure.string/join chars))
-        :else (recur (conj chars c))))))
 
 (defn read-symbol
   [reader verbatim]
