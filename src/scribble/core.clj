@@ -7,6 +7,7 @@
 ;; - `{}` reads as a vector of string and nested forms
 ;;   and is passed as a single argument to the function,
 ;;   e.g. `@foo{bar @baz{blah}}` reads as `(foo ["bar " (baz ["blah"])])`.
+;; - As a result, `@foo{}` reads as `(foo [])` and not as `foo`.
 ;; - Any number of `[]` and `{}` groups in any order is allowed in the Scribble form
 ;;   (provided that they are not separated by whitespace),
 ;;   e.g. `@foo[:bar 2]{baz}[:blah 3]` reads as `(foo :bar 2 ["baz"] :blah 3)`.
@@ -203,22 +204,36 @@
 
 (defn scribble-form-reader
   [reader]
-  (loop [forms-read []]
+  (loop [forms-read []
+         ; We want to make a difference between @foo[]
+         ; (reads as '(foo)) and @foo (reads as 'foo).
+         ; This flag will be set to `true` when either [] or {} block is encountered.
+         forms-present false]
     (let [c (reader-methods/read-1 reader)]
       (cond
         (and (= c scribble-verbatim-start) (= (reader-methods/peek reader) scribble-text-start))
           (do
             (reader-methods/read-1 reader)
-            (recur (conj forms-read (scribble-text-block-reader reader true))))
+            (recur (conj forms-read (scribble-text-block-reader reader true)) true))
         (= c scribble-verbatim-start)
-          (recur (conj forms-read (scribble-verbatim-reader reader)))
+          (recur (conj forms-read (scribble-verbatim-reader reader)) true)
         (= c scribble-text-start)
-          (recur (conj forms-read (scribble-text-block-reader reader false)))
+          (recur (conj forms-read (scribble-text-block-reader reader false)) true)
         (= c scribble-normal-start)
-          (recur (apply (partial conj forms-read)
-                        (reader-methods/read-delimited-list scribble-normal-end reader)))
-        (nil? c) (list* forms-read)
-        :else (do (reader-methods/unread reader c) (list* forms-read))))))
+          (let [forms (reader-methods/read-delimited-list scribble-normal-end reader)]
+            (recur (vec (concat forms-read forms)) true))
+        (nil? c)
+          (when forms-present
+            (if (empty? forms-read)
+              ()
+              (list* forms-read)))
+        :else
+          (do
+            (reader-methods/unread reader c)
+            (when forms-present
+              (if (empty? forms-read)
+                ()
+                (list* forms-read))))))))
 
 (defn skip-to-newline
   "Reads from `reader` until `\\newline` or `EOF` is encountered
@@ -275,9 +290,10 @@
           (reader-methods/unread reader c)
           (let [command (read-symbol reader false)
                 forms (scribble-form-reader reader)]
-            (if (empty? forms)
-              command
-              (cons command forms))))
+            (cond
+              (nil? forms) command
+              (empty? forms) (list command)
+              :else (cons command forms))))
       :else
         (do
           (reader-methods/unread reader c)

@@ -148,6 +148,13 @@
   ['@foo|<(-[{bar}@|{baz}]-)>|
    '(foo ["bar}@|{baz"])]
 
+  ; Empty blocks
+
+  ['@foo[]{bar} '(foo ["bar"])]
+  ['@foo[] '(foo)]
+  ['@foo 'foo]
+  ['@foo{} '(foo [])]
+
   ])
 
 (deftest test-reading
