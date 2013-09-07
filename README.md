@@ -1,36 +1,5 @@
-# scribble
+# An implementation of Scribble syntax for Clojure
 
-FIXME: description
-
-## Installation
-
-Download from http://example.com/FIXME.
-
-## Usage
-
-FIXME: explanation
-
-    $ java -jar scribble-0.1.0-standalone.jar [args]
-
-## Options
-
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
-
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
-
-## License
-
-Copyright © 2013 FIXME
-
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
+[Scribble](http://docs.racket-lang.org/scribble/) is a documentation generation tool based on a [text-oriented syntax](http://docs.racket-lang.org/scribble/reader.html) for S-expressions.
+This is a Clojure module implementing the syntax (via a reader macro), not the whole documentation generator.
+See [the project documentation page](http://clojure-scribble.publicfields.net) for more details.
