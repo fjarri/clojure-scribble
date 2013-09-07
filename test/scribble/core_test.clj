@@ -136,6 +136,18 @@
        "  " "*p = '\\n';" "\n"
        "}"])]
 
+  ; Here strings
+  ['@foo|{bar}@{baz}|
+   '(foo ["bar}@{baz"])]
+  ['@foo|{bar |@x{X} baz}|
+   '(foo ["bar " (x ["X"]) " baz"])]
+  ['@foo|{bar |@x|{@}| baz}|
+   '(foo ["bar " (x ["@"]) " baz"])]
+;  ['@foo|--{bar}@|{baz}--|
+;   '(foo ["bar}@|{baz"])]
+;  ['@foo|<<{bar}@|{baz}>>|
+;   '(foo ["bar}@|{baz"])]
+
   ])
 
 (deftest test-reading
