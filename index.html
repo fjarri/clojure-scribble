@@ -3028,8 +3028,8 @@ net.brehaut.ClojureTools = (function (SH) {
     build_tree: build_tree
   };
 })(SyntaxHighlighter);
-</script><title>scribble -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">scribble</h1><h2 class="project-version">0.1.0-SNAPSHOT</h2><br /><p>A Racket's Scribble sub-language implementation in Clojure</p>
-</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.5.1</td></tr><tr><td class="dep-name">one_more_minute/clarity</td><td class="dotted"><hr /></td><td class="dep-version">0.1.1</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#scribble.core">scribble.core</a></li><li><a href="#scribble.postprocess">scribble.postprocess</a></li><li><a href="#scribble.repr">scribble.repr</a></li><li><a href="#scribble.text-accum">scribble.text-accum</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.core" name="scribble.core"><h1 class="project-name">scribble.core</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The syntax differs from the Racket's Scribble in the following ways:</p>
+</script><title>net.publicfields/scribble -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">net.publicfields/scribble</h1><h2 class="project-version">0.1.0-SNAPSHOT</h2><br /><p>A Racket's Scribble sub-language implementation in Clojure</p>
+</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.5.1</td></tr><tr><td class="dep-name">one_more_minute/clarity</td><td class="dotted"><hr /></td><td class="dep-version">0.1.1</td></tr></table></div><div class="dependencies"><h3>dev dependencies</h3><table><tr><td class="dep-name">lein-kibit</td><td class="dotted"><hr /></td><td class="dep-version">0.0.8</td></tr><tr><td class="dep-name">jonase/eastwood</td><td class="dotted"><hr /></td><td class="dep-version">0.0.2</td></tr><tr><td class="dep-name">lein-marginalia</td><td class="dotted"><hr /></td><td class="dep-version">0.7.1</td></tr><tr><td class="dep-name">lein-cloverage</td><td class="dotted"><hr /></td><td class="dep-version">1.0.2</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#scribble.core">scribble.core</a></li><li><a href="#scribble.postprocess">scribble.postprocess</a></li><li><a href="#scribble.reader">scribble.reader</a></li><li><a href="#scribble.repr">scribble.repr</a></li><li><a href="#scribble.text-accum">scribble.text-accum</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.core" name="scribble.core"><h1 class="project-name">scribble.core</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The syntax differs from the Racket's Scribble in the following ways:</p>
 
 <ul>
 <li><code>@;</code> stands for a simple single-line comment,
@@ -3055,13 +3055,129 @@ and how can it still be used according to the standard Clojure syntax
 may be changed as well.</li>
 </ul>
 </td><td class="codes"><pre class="brush: clojure">(ns scribble.core
-  (:use [clarity.reader.hacking :only [with-reader-macro]])
-  (:use [clarity.reader.macros :only [use-reader-macros]])
-  (:require [clarity.reader.utils :as reader-methods])
+  (:use [clarity.reader.hacking :only [with-reader-macro]]
+        [clarity.reader.macros :only [use-reader-macros]])
+  (:require [scribble.reader :refer :all]))</pre></td></tr><tr><td class="docs"><p>Enables the Scribble reader macro in the current namespace.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn use-scribble
+  []
+  (use-reader-macros {:char scribble-char :reader scribble-entry-reader}))</pre></td></tr><tr><td class="docs"><p>Temporarily enables the Scribble reader macro.</p>
+</td><td class="codes"><pre class="brush: clojure">(defmacro with-scribble
+  [&amp; forms]
+  `(with-reader-macro scribble-char scribble-entry-reader (do ~@forms)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.postprocess" name="scribble.postprocess"><h1 class="project-name">scribble.postprocess</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><h1>Postprocessing for a text block</h1>
+
+<p>In order to reduce the amount of spurious whitespace of a text block,
+Scribble truncates leading whitespace and discards
+trailing whitespace and some newlines, based on certain conditions.</p>
+
+<p>Theoretically, this can be done during reading, but performing it separately
+makes the code more readable.</p>
+</td><td class="codes"></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(ns scribble.postprocess
+  (:require [scribble.text-accum :refer :all]))</pre></td></tr><tr><td class="docs"><p>Used to help the coverage tester.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn id
+  [x]
+  x)</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn whitespace-or-newline?
+  [x]
+  (or
+    (.newline? x)
+    (.leading-ws? x)
+    (.trailing-ws? x)))</pre></td></tr><tr><td class="docs"><p>Returns <code>true</code> if the sequence <code>v</code> contains only `\newline``s
+  and strings of whitespace characters.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn whitespace-only?
+  &quot;Returns `true` if the sequence `v` contains only `\\newline``s
+  and strings of whitespace characters.&quot;
+  [v]
+  (every? whitespace-or-newline? v))</pre></td></tr><tr><td class="docs"><p>Trim (a possible whitespace string and) a newline string from the vector <code>v</code>,
+  if they are present.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn trim-leading-newline
+  [v]
+  (if (empty? v)
+    (id v)
+    (let [t-first (nth v 0)]
+      (if (= (count v) 1)
+        (if (.newline? t-first)
+          (id [])
+          (id v))
+        (let [t-second (nth v 1)]
+          (cond
+            (.newline? t-first) (subvec v 1)
+            (and (.leading-ws? t-first) (.newline? t-second)) (subvec v 2)
+            :else (id v)))))))</pre></td></tr><tr><td class="docs"><p>Trim a newline string (and a possible whitespace string) from the vector <code>v</code>,
+  if they are present.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn trim-trailing-newline
+  [v]
+  (if (empty? v)
+    (id v)
+    (let [n-last (dec (count v))
+          t-last (nth v n-last)]
+      (if (= (count v) 1)
+        (if (.newline? t-last)
+          (id [])
+          (id v))
+        (let [n-prev (dec n-last)
+              t-prev (nth v n-prev)]
+          (cond
+            (.newline? t-last) (subvec v 0 n-last)
+            (and (.leading-ws? t-last) (.newline? t-prev)) (subvec v 0 n-prev)
+            :else (id v)))))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn trim-whitespace-pred [indent token]
+  (when-not (.trailing-ws? token)
+    (if (.leading-ws? token)
+      (when (&gt; (count (.contents token)) indent)
+        (map-contents #(subs % indent) token))
+      token)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn trim-whitespace [v indent]
+  (filterv #(not (nil? %))
+    (map (partial trim-whitespace-pred indent) v)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn get-starting-indent [v starting-indent]
+  (if (and (&gt; (count v) 2) (.newline? (nth v 0)))
+    (if (.leading-ws? (nth v 1))
+      (-&gt; v (nth 1) .contents count)
+      0)
+    starting-indent))</pre></td></tr><tr><td class="docs"><p>Removes excessive whitespace according to the following rules:</p>
+
+<ul>
+<li>If the vector starts with a <code>\newline</code>, the size of the following whitespace
+is used instead of <code>starting-indent</code>.</li>
+<li>If the vector only contains <code>\newline</code>s and whitespace,
+everything except <code>\newline</code>s is discarded.</li>
+<li>Otherwise if it starts with (maybe some whitespace and) <code>\newline</code>,
+or ends with <code>\newline</code> (and maybe some whitespace), these are discarded.</li>
+<li>Any whitespace right before a <code>\newline</code> is discarded.</li>
+<li>Any whitespace after a <code>\newline</code> with more than <code>starting-indent</code> characters
+is truncated by this amount, otherwise it is discarded completely.</li>
+</ul>
+</td><td class="codes"><pre class="brush: clojure">(defn text-trim-whitespace
+  &quot;Removes excessive whitespace according to the following rules:
+  - If the vector starts with a `\\newline`, the size of the following whitespace
+    is used instead of `starting-indent`.
+  - If the vector only contains `\\newline`s and whitespace,
+    everything except `\\newline`s is discarded.
+  - Otherwise if it starts with (maybe some whitespace and) `\\newline`,
+    or ends with `\\newline` (and maybe some whitespace), these are discarded.
+  - Any whitespace right before a `\\newline` is discarded.
+  - Any whitespace after a `\\newline` with more than `starting-indent` characters
+    is truncated by this amount, otherwise it is discarded completely.&quot;
+  [text-accum starting-indent]
+    (let [starting-indent (get-starting-indent text-accum starting-indent)]
+      (cond
+        (empty? text-accum) text-accum
+        (whitespace-only? text-accum) (filterv #(.newline? %) text-accum)
+        :else (-&gt; text-accum
+          (trim-whitespace starting-indent)
+          trim-leading-newline
+          trim-trailing-newline))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn text-postprocess
+  [text-accum starting-indent]
+  (-&gt; text-accum
+    (text-trim-whitespace starting-indent)
+    text-accum-finalize))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.reader" name="scribble.reader"><h1 class="project-name">scribble.reader</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(ns scribble.reader
   (:import [clojure.lang Util LispReader LineNumberingPushbackReader])
-  (:require [scribble.text-accum :refer :all])
-  (:require [scribble.postprocess :refer :all])
-  (:require [scribble.repr :refer :all]))</pre></td></tr><tr><td class="docs">
+  (:require [clarity.reader.utils :as reader-methods]
+            [scribble.text-accum :refer :all]
+            [scribble.postprocess :refer :all]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn whitespace? [c]
   (or (= c \space) (= c \tab)))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(def scribble-char \@)
@@ -3302,122 +3418,7 @@ may be changed as well.</li>
       :else
         (do
           (reader-methods/unread reader c)
-          (reader-methods/read-next reader)))))</pre></td></tr><tr><td class="docs"><p>Enables the Scribble reader macro in the current namespace.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn use-scribble
-  []
-  (use-reader-macros {:char scribble-char :reader scribble-entry-reader}))</pre></td></tr><tr><td class="docs"><p>Temporarily enables the Scribble reader macro.</p>
-</td><td class="codes"><pre class="brush: clojure">(defmacro with-scribble
-  [&amp; forms]
-  `(with-reader-macro scribble-char scribble-entry-reader (do ~@forms)))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.postprocess" name="scribble.postprocess"><h1 class="project-name">scribble.postprocess</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><h1>Postprocessing for a text block</h1>
-
-<p>In order to reduce the amount of spurious whitespace of a text block,
-Scribble truncates leading whitespace and discards
-trailing whitespace and some newlines, based on certain conditions.</p>
-
-<p>Theoretically, this can be done during reading, but performing it separately
-makes the code more readable.</p>
-</td><td class="codes"></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(ns scribble.postprocess
-  (:require [scribble.text-accum :refer :all]))</pre></td></tr><tr><td class="docs"><p>Used to help the coverage tester.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn id
-  [x]
-  x)</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn whitespace-or-newline?
-  [x]
-  (or
-    (.newline? x)
-    (.leading-ws? x)
-    (.trailing-ws? x)))</pre></td></tr><tr><td class="docs"><p>Returns <code>true</code> if the sequence <code>v</code> contains only `\newline``s
-  and strings of whitespace characters.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn whitespace-only?
-  &quot;Returns `true` if the sequence `v` contains only `\\newline``s
-  and strings of whitespace characters.&quot;
-  [v]
-  (every? whitespace-or-newline? v))</pre></td></tr><tr><td class="docs"><p>Trim (a possible whitespace string and) a newline string from the vector <code>v</code>,
-  if they are present.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn trim-leading-newline
-  [v]
-  (if (empty? v)
-    (id v)
-    (let [t-first (nth v 0)]
-      (if (= (count v) 1)
-        (if (.newline? t-first)
-          (id [])
-          (id v))
-        (let [t-second (nth v 1)]
-          (cond
-            (.newline? t-first) (subvec v 1)
-            (and (.leading-ws? t-first) (.newline? t-second)) (subvec v 2)
-            :else (id v)))))))</pre></td></tr><tr><td class="docs"><p>Trim a newline string (and a possible whitespace string) from the vector <code>v</code>,
-  if they are present.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn trim-trailing-newline
-  [v]
-  (if (empty? v)
-    (id v)
-    (let [n-last (dec (count v))
-          t-last (nth v n-last)]
-      (if (= (count v) 1)
-        (if (.newline? t-last)
-          (id [])
-          (id v))
-        (let [n-prev (dec n-last)
-              t-prev (nth v n-prev)]
-          (cond
-            (.newline? t-last) (subvec v 0 n-last)
-            (and (.leading-ws? t-last) (.newline? t-prev)) (subvec v 0 n-prev)
-            :else (id v)))))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn trim-whitespace-pred [indent token]
-  (when-not (.trailing-ws? token)
-    (if (.leading-ws? token)
-      (when (&gt; (count (.contents token)) indent)
-        (map-contents #(subs % indent) token))
-      token)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn trim-whitespace [v indent]
-  (filterv #(not (nil? %))
-    (map (partial trim-whitespace-pred indent) v)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn get-starting-indent [v starting-indent]
-  (if (and (&gt; (count v) 2) (.newline? (nth v 0)))
-    (if (.leading-ws? (nth v 1))
-      (-&gt; v (nth 1) .contents count)
-      0)
-    starting-indent))</pre></td></tr><tr><td class="docs"><p>Removes excessive whitespace according to the following rules:</p>
-
-<ul>
-<li>If the vector starts with a <code>\newline</code>, the size of the following whitespace
-is used instead of <code>starting-indent</code>.</li>
-<li>If the vector only contains <code>\newline</code>s and whitespace,
-everything except <code>\newline</code>s is discarded.</li>
-<li>Otherwise if it starts with (maybe some whitespace and) <code>\newline</code>,
-or ends with <code>\newline</code> (and maybe some whitespace), these are discarded.</li>
-<li>Any whitespace right before a <code>\newline</code> is discarded.</li>
-<li>Any whitespace after a <code>\newline</code> with more than <code>starting-indent</code> characters
-is truncated by this amount, otherwise it is discarded completely.</li>
-</ul>
-</td><td class="codes"><pre class="brush: clojure">(defn text-trim-whitespace
-  &quot;Removes excessive whitespace according to the following rules:
-  - If the vector starts with a `\\newline`, the size of the following whitespace
-    is used instead of `starting-indent`.
-  - If the vector only contains `\\newline`s and whitespace,
-    everything except `\\newline`s is discarded.
-  - Otherwise if it starts with (maybe some whitespace and) `\\newline`,
-    or ends with `\\newline` (and maybe some whitespace), these are discarded.
-  - Any whitespace right before a `\\newline` is discarded.
-  - Any whitespace after a `\\newline` with more than `starting-indent` characters
-    is truncated by this amount, otherwise it is discarded completely.&quot;
-  [text-accum starting-indent]
-    (let [starting-indent (get-starting-indent text-accum starting-indent)]
-      (cond
-        (empty? text-accum) text-accum
-        (whitespace-only? text-accum) (filterv #(.newline? %) text-accum)
-        :else (-&gt; text-accum
-          (trim-whitespace starting-indent)
-          trim-leading-newline
-          trim-trailing-newline))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn text-postprocess
-  [text-accum starting-indent]
-  (-&gt; text-accum
-    (text-trim-whitespace starting-indent)
-    text-accum-finalize))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.repr" name="scribble.repr"><h1 class="project-name">scribble.repr</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+          (reader-methods/read-next reader)))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.repr" name="scribble.repr"><h1 class="project-name">scribble.repr</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(ns scribble.repr)</pre></td></tr><tr><td class="docs"><p>Returns the string representation of the string containing the given character.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn repr-char
   [c]
