@@ -11,24 +11,24 @@ The reader macro can be used in two ways:
 
 1. Namespace-wide extension of the reader:
 
-       (ns your.project
-         [:require [scribble.core :refer :all]])
+    (ns your.project
+      [:require [scribble.core :refer :all]])
 
-       (use-scribble)
+    (use-scribble)
 
-       ; Now you can use the new syntax!
-       @def[xx]{This is a string}
+    ; Now you can use the new syntax!
+    @def[xx]{This is a string}
 
-       (println xx)
+    (println xx)
 
 2. Temporary extension of the reader:
 
-       (ns your.project
-         [:require [scribble.core :as scribble]])
+    (ns your.project
+      [:require [scribble.core :as scribble]])
 
-       (def forms
-         (with-scribble
-           (read (java.io.PushbackReader.
-             (clojure.java.io/reader "source.clj")))))
+    (def forms
+      (with-scribble
+        (read (java.io.PushbackReader.
+          (clojure.java.io/reader "source.clj")))))
 
    Note that if the reader does not provide line/column metadata, the leading whitespace truncation will not be applied to the text blocks.
