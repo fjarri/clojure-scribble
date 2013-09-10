@@ -7,11 +7,14 @@
                  [one_more_minute/clarity "0.1.1"]]
   :profiles {
     :dev {
+      :dependencies [[midje "1.5.1"]]
       :plugins [
         [lein-marginalia "0.7.1"] ; build docs, 'lein marg'
-        [lein-cloverage "1.0.2"] ; run tests and check coverage, 'lein cloverage'
+        [lein-midje "3.1.1"] ; run tests, 'lein midge'
+        [cloverage "1.0.3"] ; run tests and check coverage, 'lein cloverage'
         [lein-checkall "0.1.1"] ; check code style, 'lein checkall'
-        [perforate "0.3.3"]] ; run performance tests, 'lein perforate'
+        [perforate "0.3.3"] ; run performance tests, 'lein perforate'
+        ]
       :resource-paths ["test_resources"]
       }}
   :main scribble.core)

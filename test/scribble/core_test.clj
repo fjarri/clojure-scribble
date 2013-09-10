@@ -1,4 +1,5 @@
 (ns scribble.core-test
+  (:use [midje.sweet])
   (:require [clojure.test :refer :all]
             [scribble.repr :refer :all]
             [scribble.core :refer :all]))
@@ -13,151 +14,213 @@
 ; Tests for the reader macro
 ; Mostly taken from http://docs.racket-lang.org/scribble/reader.html
 
-(def forms [
+(deftest test-reader (facts "about the reader"
 
   ; difference from the original Scribble syntax: @; is a normal comment,
   ; @;; is a TeX-like (whitespace-consuming) comment
-
-  ; this also tests that the whitespace right before the newline
-  ; (see the first line) is discarded.
-  ['@foo{bar @; comment
+  (fact "a whitespace between a line comment and a newline is discarded"
+   '@foo{bar @; comment
          baz@;
          blah}
+    =>
    '(foo ["bar" "\n"
       "baz" "\n"
-      "blah"])]
+      "blah"]))
 
-  ['@foo{bar @;; comment
+  (fact "a consuming comment joins lines"
+   '@foo{bar @;; comment
          baz@;;
          blah}
-   '(foo ["bar bazblah"])]
+    =>
+   '(foo ["bar bazblah"]))
 
   ; The Scribble Syntax at a Glance
 
-  ['@foo{blah blah blah}
-   '(foo ["blah blah blah"])]
-  ['@foo{blah "blah" (`blah'?)}
-   '(foo ["blah \"blah\" (`blah'?)"])]
-  ['@foo[1 2]{3 4}
-   '(foo 1 2 ["3 4"])]
-  ['@foo[1 2 3 4]
-   '(foo 1 2 3 4)]
-  ['@foo[:width 2]{blah blah}
-   '(foo :width 2 ["blah blah"])]
+  (fact "a simple line"
+   '@foo{blah blah blah}
+    =>
+   '(foo ["blah blah blah"]))
+
+  (fact "quotes in a text block"
+   '@foo{blah "blah" (`blah'?)}
+    =>
+   '(foo ["blah \"blah\" (`blah'?)"]))
+
+  (fact "a normal block and a text block"
+   '@foo[1 2]{3 4}
+    =>
+   '(foo 1 2 ["3 4"]))
+
+  (fact "a single normal block"
+   '@foo[1 2 3 4]
+    =>
+   '(foo 1 2 3 4))
+
+  (fact "a non-trivial syntax in a normal block"
+   '@foo[:width 2]{blah blah}
+    =>
+   '(foo :width 2 ["blah blah"]))
 
   ; If the beginning { is followed by something other than \n, all indentation is counted from it.
   ; If the indentation of the line is bigger, the base indentation is subtracted from it.
   ; If it is smaller, it is discarder completely.
   ; NOTE: currently 1 \tab = 1 \space. Clojure's reader counts \tab as one symbol anyway.
-  ['@foo{blah blah
+  (fact "leading indentation is truncated"
+   '@foo{blah blah
          yada yada
            ddd
        ttt}
+    =>
    '(foo ["blah blah" "\n"
       "yada yada" "\n"
       "  " "ddd" "\n"
-      "ttt"])]
+      "ttt"]))
 
   ; If the beginning { is directly followed by \n,
   ; The starting indentation is taken from the next line.
   ; Same rules as before apply for the remaining lines.
-  ['@foo{
+  (fact "leading indentation and a starting newline are truncated"
+   '@foo{
       blah blah
       yada yada
         ddd
     ttt
    }
+    =>
    '(foo [
       "blah blah" "\n"
       "yada yada" "\n"
       "  " "ddd" "\n"
-      "ttt"])]
+      "ttt"]))
 
-  ; Leading newlines trimming
-
-  ['@foo{bar @baz{3}
+  (fact "leading indentation with nested forms is truncated"
+   '@foo{bar @baz{3}
          blah}
+    =>
    '(foo ["bar " (baz ["3"]) "\n"
-      "blah"])]
+      "blah"]))
 
-  ['@foo{@b{@u[3] @u{4}}
+  (fact "leading indentation with nested forms in the beginning is truncated"
+   '@foo{@b{@u[3] @u{4}}
          blah}
+    =>
    '(foo [(b [(u 3) " " (u ["4"])]) "\n"
-      "blah"])]
-
-  ['@C{while (*(p++))
-       *p = '\n';}
-   '(C ["while (*(p++))" "\n"
-      "*p = '\\n';"])]
+      "blah"]))
 
   ; Missing command part
 
-  ['@{blah blah}
-   '(["blah blah"])]
-  ['@{blah @[3]}
-   '(["blah " (3)])]
-  ['@{foo
+  (fact "missing command part"
+   '@{blah blah}
+    =>
+   '(["blah blah"]))
+
+  (fact "missing command part with a nested form"
+   '@{blah @[3]}
+    =>
+   '(["blah " (3)]))
+
+  (fact "missing command part with multiline text"
+   '@{foo
       bar
       baz}
+    =>
    '(["foo" "\n"
       "bar" "\n"
-      "baz"])]
+      "baz"]))
 
   ; Command part only
 
-  ['@foo
-   'foo]
-  ['@{blah @foo blah}
-   '(["blah " foo " blah"])]
-  ['@{blah @foo- blah} ; ':' in identifiers has special meaning in Clojure, so changed it to '-'
-   '(["blah " foo- " blah"])]
-  ['@{blah @|foo|- blah}
-   '(["blah " foo "- blah"])]
-  ; after a '||'-delimited symbol the text mode starts right away
-  ['@{blah @|foo|[3] blah}
-   '(["blah " foo "[3] blah"])]
+  (fact "command part only"
+   '@foo
+    =>
+   'foo)
 
-  ; Arbitrary form after the Scribble character
-  ; Special case: the string gets attached to the surrounding text
-  ['@foo{(+ 1 2) -> @(+ 1 2)!}
-   '(foo ["(+ 1 2) -> " (+ 1 2) "!"])]
-  ['@foo{A @"string" escape}
-   '(foo ["A string escape"])]
-  ['@foo{eli@"@"barzilay.org}
-   '(foo ["eli@barzilay.org"])]
-  ['@foo{A @"{" begins a block}
-   '(foo ["A { begins a block"])]
+  (fact "command part only in a text block"
+   '@{blah @foo blah}
+    =>
+   '(["blah " foo " blah"]))
 
-  ; Balanced braces do not require escaping
-  ['@C{while (*(p++)) {
+  ; ':' in identifiers has special meaning in Clojure, so changed it to '-'
+  (fact "non-trivial command in a text block"
+   '@{blah @foo- blah}
+    =>
+   '(["blah " foo- " blah"]))
+
+  (fact "escaped command in a text block"
+   '@{blah @|foo|- blah}
+    =>
+   '(["blah " foo "- blah"]))
+
+  (fact "text mode starts right after an escaped command"
+   '@{blah @|foo|[3] blah}
+    =>
+   '(["blah " foo "[3] blah"]))
+
+  (fact "arbitrary form as a command"
+   '@foo{(+ 1 2) -> @(+ 1 2)!}
+   =>
+   '(foo ["(+ 1 2) -> " (+ 1 2) "!"]))
+
+  (fact "a command-like string is attached to the surrounding text"
+   '@foo{A @"string" escape}
+    =>
+   '(foo ["A string escape"]))
+
+  (fact "the entry character wrapped in a string"
+   '@foo{eli@"@"barzilay.org}
+    =>
+   '(foo ["eli@barzilay.org"]))
+
+  (fact "the text block delimiter wrapped in a string"
+   '@foo{A @"{" begins a block}
+    =>
+   '(foo ["A { begins a block"]))
+
+  (fact "balanced text block delimiters do not require escaping"
+   '@C{while (*(p++)) {
          *p = '\n';
       }}
+    =>
    '(C ["while (*(p++)) {" "\n"
        "  " "*p = '\\n';" "\n"
-       "}"])]
+       "}"]))
 
   ; Here strings
-  ['@foo|{bar}@{baz}|
-   '(foo ["bar}@{baz"])]
-  ['@foo|{bar |@x{X} baz}|
-   '(foo ["bar " (x ["X"]) " baz"])]
-  ['@foo|{bar |@x|{@}| baz}|
-   '(foo ["bar " (x ["@"]) " baz"])]
-  ['@foo|--{bar}@|{baz}--|
-   '(foo ["bar}@|{baz"])]
-  ['@foo|<(-[{bar}@|{baz}]-)>|
-   '(foo ["bar}@|{baz"])]
+
+  (fact "unbalanced text block delimiters in an escaped text block"
+   '@foo|{bar}@{baz}|
+   =>
+   '(foo ["bar}@{baz"]))
+
+  (fact "an escaped nested command in an escaped text block"
+   '@foo|{bar |@x{X} baz}|
+    =>
+   '(foo ["bar " (x ["X"]) " baz"]))
+
+  (fact "an escaped nested text block in an escaped text block"
+   '@foo|{bar |@x|{@}| baz}|
+    =>
+   '(foo ["bar " (x ["@"]) " baz"]))
+
+  (fact "a verbatim text block"
+   '@foo|--{bar}@|{baz}--|
+    =>
+   '(foo ["bar}@|{baz"]))
+
+  (fact "a verbatim text block with mirrored delimiters"
+   '@foo|<(-[{bar}@|{baz}]-)>|
+    =>
+   '(foo ["bar}@|{baz"]))
 
   ; Empty blocks
 
-  ['@foo[]{bar} '(foo ["bar"])]
-  ['@foo[] '(foo)]
-  ['@foo 'foo]
-  ['@foo{} '(foo [])]
+  (fact "an empty normal block is ignored"
+   '@foo[]{bar} => '(foo ["bar"]))
+  (fact "an empty normal block and a missing text block result in a form"
+   '@foo[] => '(foo))
+  (fact "a single command is read as a symbol"
+   '@foo => 'foo)
+  (fact "an empty text block results in an empty text container"
+   '@foo{} => '(foo []))
 
-  ])
-
-(deftest test-reading
-  (doseq [[scribble-form expected-form] forms]
-    (testing (repr expected-form)
-      (is (= scribble-form expected-form)))))
+))
