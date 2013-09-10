@@ -14,7 +14,11 @@
       [trimmed-s (subs s count-trimmed)])))
 
 
-(deftype TextToken [contents newline? leading-ws? trailing-ws?])
+(deftype TextToken [
+  contents
+  ^Boolean newline?
+  ^Boolean leading-ws?
+  ^Boolean trailing-ws?])
 
 (defn make-token
   [contents & {:keys [newline leading-ws trailing-ws]
@@ -23,7 +27,7 @@
                     trailing-ws false}}]
   (TextToken. contents newline leading-ws trailing-ws))
 
-(defn map-contents [f token]
+(defn map-contents [f ^TextToken token]
   (TextToken.
     (f (.contents token))
     (.newline? token)
@@ -37,7 +41,9 @@
 
 (defn text-accum-finalize
   [text-accum]
-  (mapv #(.contents %) text-accum))
+  (mapv
+    (fn [^TextToken token] (.contents token))
+    text-accum))
 
 
 (defn ^:private append-trailing-ws

@@ -8,7 +8,8 @@
 ;; makes the code more readable.
 
 (ns scribble.postprocess
-  (:require [scribble.text-accum :refer :all]))
+  (:require [scribble.text-accum :refer :all])
+  (:import [scribble.text_accum TextToken]))
 
 (defn id
   "Used to help the coverage tester."
@@ -16,17 +17,17 @@
   x)
 
 (defn whitespace-or-newline?
-  [x]
+  [^TextToken token]
   (or
-    (.newline? x)
-    (.leading-ws? x)
-    (.trailing-ws? x)))
+    (.newline? token)
+    (.leading-ws? token)
+    (.trailing-ws? token)))
 
 (defn whitespace-only?
   "Returns `true` if the sequence `v` contains only `\\newline``s
   and strings of whitespace characters."
-  [v]
-  (every? whitespace-or-newline? v))
+  [^TextToken token]
+  (every? whitespace-or-newline? token))
 
 (defn trim-leading-newline
   "Trim (a possible whitespace string and) a newline string from the vector `v`,
@@ -34,12 +35,12 @@
   [v]
   (if (empty? v)
     (id v)
-    (let [t-first (nth v 0)]
+    (let [^TextToken t-first (nth v 0)]
       (if (= (count v) 1)
         (if (.newline? t-first)
           (id [])
           (id v))
-        (let [t-second (nth v 1)]
+        (let [^TextToken t-second (nth v 1)]
           (cond
             (.newline? t-first) (subvec v 1)
             (and (.leading-ws? t-first) (.newline? t-second)) (subvec v 2)
@@ -52,19 +53,19 @@
   (if (empty? v)
     (id v)
     (let [n-last (dec (count v))
-          t-last (nth v n-last)]
+          ^TextToken t-last (nth v n-last)]
       (if (= (count v) 1)
         (if (.newline? t-last)
           (id [])
           (id v))
         (let [n-prev (dec n-last)
-              t-prev (nth v n-prev)]
+              ^TextToken t-prev (nth v n-prev)]
           (cond
             (.newline? t-last) (subvec v 0 n-last)
             (and (.leading-ws? t-last) (.newline? t-prev)) (subvec v 0 n-prev)
             :else (id v)))))))
 
-(defn trim-whitespace-pred [indent token]
+(defn trim-whitespace-pred [indent ^TextToken token]
   (when-not (.trailing-ws? token)
     (if (.leading-ws? token)
       (when (> (count (.contents token)) indent)
@@ -77,10 +78,12 @@
 
 
 (defn get-starting-indent [v starting-indent]
-  (if (and (> (count v) 2) (.newline? (nth v 0)))
-    (if (.leading-ws? (nth v 1))
-      (-> v (nth 1) .contents count)
-      0)
+  (if (> (count v) 1)
+    (let [t0 ^TextToken (nth v 0)
+          t1 ^TextToken (nth v 1)]
+      (if (and (.newline? t0) (.leading-ws? t1))
+        (-> t1 .contents count)
+        starting-indent))
     starting-indent))
 
 (defn text-trim-whitespace
@@ -99,7 +102,7 @@
     (let [starting-indent (get-starting-indent text-accum starting-indent)]
       (cond
         (empty? text-accum) text-accum
-        (whitespace-only? text-accum) (filterv #(.newline? %) text-accum)
+        (whitespace-only? text-accum) (filterv (fn [^TextToken token] (.newline? token)) text-accum)
         :else (-> text-accum
           (trim-whitespace starting-indent)
           trim-leading-newline

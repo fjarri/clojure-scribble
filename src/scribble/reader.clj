@@ -1,5 +1,5 @@
 (ns scribble.reader
-  (:import [clojure.lang Util LispReader LineNumberingPushbackReader])
+  (:import [clojure.lang LineNumberingPushbackReader])
   (:require [clarity.reader.utils :as reader-methods]
             [scribble.text-accum :refer :all]
             [scribble.postprocess :refer :all]))
@@ -23,7 +23,7 @@
   #{\* \+ \! \- \_ \?})
 
 (defn symbol-start?
-  [c]
+  [^Character c]
   (or
     (Character/isLetterOrDigit c)
     (contains? scribble-symbol-start c)))
@@ -57,8 +57,8 @@
   (vec (map inverse-char (reverse v))))
 
 
-(defn reader-position [reader]
-  (if (instance? clojure.lang.LineNumberingPushbackReader reader)
+(defn reader-position [^LineNumberingPushbackReader reader]
+  (if (instance? LineNumberingPushbackReader reader)
     [(-> reader .getLineNumber int) (-> reader .getColumnNumber dec int)]))
 
 (defn reader-error [reader message]
