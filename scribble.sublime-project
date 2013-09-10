@@ -1,29 +1,35 @@
 {
+	"settings": {
+		"rulers":
+		[
+			80
+		],
+		"wrap_width": 80
+	},
 	"folders":
 	[
 		{
 			"path": "./",
-            "file_exclude_patterns": [
-                "pom.xml",
-                "pom.xml.asc",
-                "*.jar",
-                "*.class",
-                ".lein-deps-sum",
-                ".lein-failures",
-                ".lein-plugins",
-                ".lein-repl-history",
-                "*.sublime-workspace",
-                ".nrepl-port"
-            ],
-            "folder_exclude_patterns": [
-                "target",
-                "classes",
-                "checkouts",
-                "docs"
-            ]
-		},
-		{
-			"path": "/Volumes/Data/Workbench/repos/clarity/src/clarity"
+			"file_exclude_patterns":
+			[
+				"pom.xml",
+				"pom.xml.asc",
+				"*.jar",
+				"*.class",
+				".lein-deps-sum",
+				".lein-failures",
+				".lein-plugins",
+				".lein-repl-history",
+				"*.sublime-workspace",
+				".nrepl-port"
+			],
+			"folder_exclude_patterns":
+			[
+				"target",
+				"classes",
+				"checkouts",
+				"docs"
+			]
 		}
 	]
 }
