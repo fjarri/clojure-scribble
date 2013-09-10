@@ -136,7 +136,8 @@
 
 (defn scribble-text-block-reader
   [reader escaped]
-  (let [[_ column] (reader-position reader)
+  (let [[_ c] (reader-position reader)
+        column (if (nil? c) 0 c)
         text-accum (scribble-text-reader reader escaped)
         text-form (text-postprocess text-accum column)]
     (if escaped
