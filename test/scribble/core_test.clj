@@ -253,6 +253,19 @@
     =>
    '(`(unquote foo) ["blah"]))
 
+  (fact "command and normal part can be omitted"
+   '@{foo bar
+      baz}
+    =>
+   '(["foo bar" "\n"
+      "baz"]))
+
+  (fact "a lone text part can be escaped"
+   '@|{abcde}| => '(["abcde"]))
+
+  (fact "a lone text part can be verbatim"
+   '@|-abc{abcde}cba-| => '(["abcde"]))
+
 
   (fact "commented text form glues surrounding strings"
    '@foo{bar @;{some text

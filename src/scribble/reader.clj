@@ -173,12 +173,16 @@
           (clojure.string/join (subvec buffer 0 rest-len))
           (recur buffer))))))
 
-(defn scribble-verbatim-reader
-  [reader]
-  (let [here-seq (read-until reader #(= % scribble-text-start))
-        end-vec (concat [scribble-text-end] (inverse-vec here-seq) [scribble-verbatim-end])]
+(defn scribble-verbatim-read
+  [reader here-str]
+  (let [end-vec (concat [scribble-text-end] (inverse-vec (vec here-str)) [scribble-verbatim-end])]
     (reader-methods/read-1 reader) ; read `scribble-text-start`
     [(read-until-vec reader end-vec)]))
+
+(defn scribble-verbatim-reader
+  [reader]
+  (let [here-vec (read-until reader #(= % scribble-text-start))]
+    (scribble-verbatim-read reader (clojure.string/join here-vec))))
 
 (defn scribble-form-reader
   [reader]
@@ -238,13 +242,17 @@
         (= \newline c) (recur true)
         :else (recur newline-encountered)))))
 
+(defn resolve-symbol [s]
+  (symbol s))
+
 (defn read-symbol
   [reader verbatim]
   (if verbatim
-    (let [sym (symbol (read-until reader #(= % scribble-verbatim-end)))]
+    (let [sym (resolve-symbol
+                (read-until reader #(or (= % scribble-verbatim-end) (= % scribble-text-start))))]
       (reader-methods/read-1 reader)
       sym)
-    (symbol (read-until reader symbol-end?))))
+    (resolve-symbol (read-until reader symbol-end?))))
 
 (defn scribble-entry-reader
   "The entry point of the reader macro."
@@ -267,7 +275,16 @@
       (whitespace? c) (throw (reader-error reader "Unexpected whitespace at the start of a Scribble form"))
       (nil? c) (throw (reader-error reader "Unexpected EOF at the start of a Scribble form"))
       (= c scribble-verbatim-start)
-        (read-symbol reader true)
+        (let [s (read-until reader #(or (= % scribble-verbatim-end) (= % scribble-text-start)))
+              c (reader-methods/peek reader)]
+          (if (= c scribble-verbatim-end)
+            (do (reader-methods/read-1 reader) (resolve-symbol s))
+            (let [verbatim-form (scribble-verbatim-read reader s)
+                  forms (scribble-form-reader reader)]
+              (cond
+                (nil? forms) (list verbatim-form)
+                (empty? forms) (list verbatim-form)
+                :else (cons verbatim-form forms)))))
       :else
         (do
           (reader-methods/unread reader c)
