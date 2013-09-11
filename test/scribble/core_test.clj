@@ -254,3 +254,27 @@
    '(`(unquote foo) ["blah"]))
 
 ))
+
+; Some tests to cover exceptions that our custom reader might throw.
+; Note that we can use `read-string`, because the Scribble reader is active.
+
+(defn read-scribble [s]
+  (with-scribble (read-string s)))
+
+(deftest test-reader-exceptions (facts "about the reader exceptions"
+
+  ; Clarity's with-reader-macros locks when the readers throws an exception.
+  ; Uncomment when it is fixed.
+
+  (fact "stub fact")
+
+  ;(fact "unexpected whitespace after the entry character"
+  ;  (read-scribble "@ foo{bar}") => (throws Exception))
+
+  ;(fact "unexpected EOF after the single entry character"
+  ;  (read-scribble "@") => (throws Exception))
+
+  ;(fact "unexpected EOF after the entry character"
+  ;  (read-scribble "(def foo @") => (throws Exception))
+
+))
