@@ -253,6 +253,27 @@
     =>
    '(`(unquote foo) ["blah"]))
 
+
+  (fact "commented text form glues surrounding strings"
+   '@foo{bar @;{some text
+      with newlines
+      or even valid nested expressions like @command[foo]{bar};} baz}
+    =>
+   '(foo ["bar  baz"]))
+
+  (fact "commented text form does not break whitespace truncation"
+   '@foo{bar @;{blah
+      blah;}
+          baz}
+    =>
+   '(foo ["bar" "\n" " " "baz"]))
+
+  (fact "commented text works in normal mode"
+   '@foo[bar @;{comment}
+      2]
+    =>
+   '(foo bar 2))
+
 ))
 
 ; Some tests to cover exceptions that our custom reader might throw.

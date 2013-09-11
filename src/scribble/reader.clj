@@ -110,7 +110,9 @@
         (and (= c scribble-char) (or (not escaped) (:escaped-scribble-char state)))
           (let [nested-form (scribble-entry-reader reader c)
                 [text-accum str-accum]
-                  (dump-nested-form text-accum str-accum nested-form)]
+                  (if (= nested-form reader)
+                    [text-accum str-accum]
+                    (dump-nested-form text-accum str-accum nested-form))]
             (recur text-accum str-accum
               (assoc state :leading-ws false :escaped-scribble-char false)))
 
@@ -253,10 +255,15 @@
         (do
           (reader-methods/unread reader c)
           (scribble-form-reader reader))
-      (= c scribble-comment) (let [next-c (reader-methods/peek reader)]
-        (if (= next-c scribble-comment)
-          (skip-to-meaningful-char reader)
-          (skip-to-newline reader)))
+      (= c scribble-comment)
+        (let [next-c (reader-methods/peek reader)]
+          (condp = next-c
+            scribble-comment (skip-to-meaningful-char reader)
+            scribble-text-start (scribble-form-reader reader)
+            (skip-to-newline reader))
+          ; By convention, if the reader function has read nothing,
+          ; it returns the reader.
+          reader)
       (whitespace? c) (throw (reader-error reader "Unexpected whitespace at the start of a Scribble form"))
       (nil? c) (throw (reader-error reader "Unexpected EOF at the start of a Scribble form"))
       (= c scribble-verbatim-start)
