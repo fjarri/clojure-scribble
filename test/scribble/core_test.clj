@@ -5,8 +5,9 @@
             [scribble.core :refer :all]))
 
 
-; Unfortunately, the reader that reads from strings does not have line/column metadata.
-; So in order for Scribble whitespace truncation to work properly,
+; Unfortunately, the reader that reads from strings does not have
+; line/column metadata.
+; So in order for the whitespace truncation to work properly,
 ; we need to use the main reader.
 (use-scribble)
 
@@ -61,10 +62,13 @@
     =>
    '(foo :width 2 ["blah blah"]))
 
-  ; If the beginning { is followed by something other than \n, all indentation is counted from it.
-  ; If the indentation of the line is bigger, the base indentation is subtracted from it.
+  ; If the beginning { is followed by something other than \n,
+  ; all indentation is counted from it.
+  ; If the indentation of the line is bigger, the base indentation
+  ; is subtracted from it.
   ; If it is smaller, it is discarder completely.
-  ; NOTE: currently 1 \tab = 1 \space. Clojure's reader counts \tab as one symbol anyway.
+  ; NOTE: currently 1 \tab = 1 \space. Clojure's reader counts
+  ; \tab as one symbol anyway.
   (fact "leading indentation is truncated"
    '@foo{blah blah
          yada yada
@@ -222,5 +226,31 @@
    '@foo => 'foo)
   (fact "an empty text block results in an empty text container"
    '@foo{} => '(foo []))
+
+
+  ; The Command Part
+
+  ; Difference from the original Scribble!
+  ; Since I do not feel like parsing all the custom reader macros in existence,
+  ; everything after @ that does not look like a symbol gets passed
+  ; to the Clojure reader.
+  ; Therefore various quotes appearing after @ get applied to whatever
+  ; Clojure syntax tells them to (that is, to the form that
+  ; immediately follows), not the whole Scribble form.
+
+  (fact "stacked reader macros work"
+   '@`'~@@foo{blah}
+    =>
+   '`'~@(foo ["blah"]))
+
+  (fact "command can be any expression"
+   '@(lambda (x) x){blah}
+    =>
+   '((lambda (x) x) ["blah"]))
+
+  (fact "syntax quotes and expression-command work together"
+   '@`(unquote foo){blah}
+    =>
+   '(`(unquote foo) ["blah"]))
 
 ))

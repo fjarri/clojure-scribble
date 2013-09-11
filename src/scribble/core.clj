@@ -11,6 +11,11 @@
 ;; - Any number of `[]` and `{}` groups in any order is allowed in the Scribble form
 ;;   (provided that they are not separated by whitespace),
 ;;   e.g. `@foo[:bar 2]{baz}[:blah 3]` reads as `(foo :bar 2 ["baz"] :blah 3)`.
+;; - Reader macros that follow the `@` are *not* applied to the whole form
+;;   that starts with this `@`; rather they are applied to whatever follows
+;;   them according to Clojure syntax.
+;;   Our reader gets control only when the Clojure reader finishes,
+;;   and uses the resulting form as a command.
 ;;
 ;; Current problems:
 ;;

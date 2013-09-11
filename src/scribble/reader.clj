@@ -261,16 +261,15 @@
       (nil? c) (throw (reader-error reader "Unexpected EOF at the start of a Scribble form"))
       (= c scribble-verbatim-start)
         (read-symbol reader true)
-      (symbol-start? c)
+      ;(symbol-start? c)
+      :else
         (do
           (reader-methods/unread reader c)
-          (let [command (read-symbol reader false)
+          (let [command (if (symbol-start? c)
+                          (read-symbol reader false)
+                          (reader-methods/read-next reader))
                 forms (scribble-form-reader reader)]
             (cond
               (nil? forms) command
               (empty? forms) (list command)
-              :else (cons command forms))))
-      :else
-        (do
-          (reader-methods/unread reader c)
-          (reader-methods/read-next reader)))))
+              :else (cons command forms)))))))
