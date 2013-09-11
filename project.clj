@@ -9,7 +9,7 @@
     :dev {
       :dependencies [[midje "1.5.1"]]
       :plugins [
-        [lein-marginalia "0.7.1"] ; build docs, 'lein marg'
+        [lein-marginalia "0.8.0-SNAPSHOT"] ; build docs, 'lein marg'
         [lein-midje "3.1.1"] ; run tests, 'lein midge'
         [cloverage "1.0.3"] ; run tests and check coverage, 'lein cloverage'
         [lein-checkall "0.1.1"] ; check code style, 'lein checkall'
