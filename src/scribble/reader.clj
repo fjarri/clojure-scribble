@@ -268,7 +268,6 @@
       (nil? c) (throw (reader-error reader "Unexpected EOF at the start of a Scribble form"))
       (= c scribble-verbatim-start)
         (read-symbol reader true)
-      ;(symbol-start? c)
       :else
         (do
           (reader-methods/unread reader c)
