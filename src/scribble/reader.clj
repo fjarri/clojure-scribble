@@ -244,7 +244,7 @@
 (defn try-recognize-symbol
   [reader token]
   (if-let [sym (recognize-symbol token)]
-    (first sym)
+    (unwrap-symbol sym)
     (reader-error reader "Invalid symbol: " token)))
 
 (defn read-symbol
