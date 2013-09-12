@@ -109,7 +109,7 @@
         (and (= c scribble-char) (or (not escaped) (:escaped-scribble-char state)))
           (let [nested-form (scribble-entry-reader reader c)
                 [text-accum str-accum]
-                  (if (= nested-form reader)
+                  (if (identical? nested-form reader)
                     [text-accum str-accum]
                     (dump-nested-form text-accum str-accum nested-form))]
             (recur text-accum str-accum
@@ -204,17 +204,15 @@
           (let [forms (reader-methods/read-delimited-list scribble-normal-end reader)]
             (recur (vec (concat forms-read forms)) true))
         (nil? c)
-          (when forms-present
-            (if (empty? forms-read)
-              ()
-              (list* forms-read)))
+          (if forms-present
+            (list* forms-read)
+            reader)
         :else
           (do
             (reader-methods/unread reader c)
-            (when forms-present
-              (if (empty? forms-read)
-                ()
-                (list* forms-read))))))))
+            (if forms-present
+              (list* forms-read)
+              reader))))))
 
 (defn skip-to-newline
   "Reads from `reader` until `\\newline` or `EOF` is encountered
@@ -284,7 +282,7 @@
             (let [verbatim-form (scribble-verbatim-read reader s)
                   forms (scribble-form-reader reader)]
               (cond
-                (nil? forms) (list verbatim-form)
+                (identical? reader forms) (list verbatim-form)
                 (empty? forms) (list verbatim-form)
                 :else (cons verbatim-form forms)))))
       :else
@@ -295,6 +293,6 @@
                           (reader-methods/read-next reader))
                 forms (scribble-form-reader reader)]
             (cond
-              (nil? forms) command
+              (identical? reader forms) command
               (empty? forms) (list command)
               :else (cons command forms)))))))

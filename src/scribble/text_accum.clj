@@ -89,9 +89,6 @@
   "Need to return `str-accum` because in case of the comment we do not want to break the string."
   [text-accum str-accum nested-form]
   (cond
-    ; it was a comment
-    (nil? nested-form) [text-accum str-accum]
-
     ; it was a string: special case, append it to the accumulator
     (string? nested-form)
       [text-accum (vec (concat str-accum nested-form))]
