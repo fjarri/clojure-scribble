@@ -299,10 +299,15 @@
 
 (deftest test-symbol-resolution (facts "about the symbol resolution"
 
-  (fact "literals are resolved"
-   '@foo{aaa @nil bbb @true ccc}
+  (fact "nil is not ignored"
+   '@foo{aaa @nil bbb}
     =>
-   '(foo ["aaa " nil " bbb " true " ccc"]))
+   '(foo ["aaa " nil " bbb"]))
+
+  (fact "literals are resolved"
+   '@foo{aaa @false bbb @true ccc}
+    =>
+   '(foo ["aaa " false " bbb " true " ccc"]))
 
   (fact "known symbols are resolved"
     (let [formatter (fn [fmt]
