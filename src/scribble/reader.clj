@@ -1,8 +1,10 @@
 (ns scribble.reader
   (:import [clojure.lang LineNumberingPushbackReader])
+  (:use [clojure.tools.reader.reader-types :only [reader-error]])
   (:require [clarity.reader.utils :as reader-methods]
             [scribble.text-accum :refer :all]
-            [scribble.postprocess :refer :all]))
+            [scribble.postprocess :refer :all]
+            [scribble.symbol :refer :all]))
 
 
 (defn whitespace? [c]
@@ -61,9 +63,6 @@
   (if (instance? LineNumberingPushbackReader reader)
     [(-> reader .getLineNumber int) (-> reader .getColumnNumber dec int)]))
 
-(defn reader-error [reader message]
-  (let [[l c] (reader-position reader)]
-    (ex-info message {:line l :column c})))
 
 (declare scribble-entry-reader)
 
@@ -117,7 +116,7 @@
               (assoc state :leading-ws false :escaped-scribble-char false)))
 
         ; unexpected EOF
-        (nil? c) (throw (reader-error reader "Unexpected EOF while in text reading mode"))
+        (nil? c) (reader-error reader "Unexpected EOF while in text reading mode")
 
         ; newline encountered: dump accumulator, turn leading whitespace mode on
         (= c \newline)
@@ -146,7 +145,7 @@
       (let [c (reader-methods/read-1 reader)]
         (if (= c scribble-verbatim-end)
           text-form
-          (throw (reader-error reader "Did not find the matching end of an escaped text block"))))
+          (reader-error reader "Did not find the matching end of an escaped text block")))
       text-form)))
 
 (defn read-until
@@ -242,17 +241,20 @@
         (= \newline c) (recur true)
         :else (recur newline-encountered)))))
 
-(defn resolve-symbol [s]
-  (symbol s))
+(defn try-recognize-symbol
+  [reader token]
+  (if-let [sym (recognize-symbol token)]
+    (first sym)
+    (reader-error reader "Invalid symbol: " token)))
 
 (defn read-symbol
   [reader verbatim]
   (if verbatim
-    (let [sym (resolve-symbol
+    (let [sym (try-recognize-symbol reader
                 (read-until reader #(or (= % scribble-verbatim-end) (= % scribble-text-start))))]
       (reader-methods/read-1 reader)
       sym)
-    (resolve-symbol (read-until reader symbol-end?))))
+    (try-recognize-symbol reader (read-until reader symbol-end?))))
 
 (defn scribble-entry-reader
   "The entry point of the reader macro."
@@ -272,13 +274,13 @@
           ; By convention, if the reader function has read nothing,
           ; it returns the reader.
           reader)
-      (whitespace? c) (throw (reader-error reader "Unexpected whitespace at the start of a Scribble form"))
-      (nil? c) (throw (reader-error reader "Unexpected EOF at the start of a Scribble form"))
+      (whitespace? c) (reader-error reader "Unexpected whitespace at the start of a Scribble form")
+      (nil? c) (reader-error reader "Unexpected EOF at the start of a Scribble form")
       (= c scribble-verbatim-start)
         (let [s (read-until reader #(or (= % scribble-verbatim-end) (= % scribble-text-start)))
               c (reader-methods/peek reader)]
           (if (= c scribble-verbatim-end)
-            (do (reader-methods/read-1 reader) (resolve-symbol s))
+            (do (reader-methods/read-1 reader) (try-recognize-symbol reader s))
             (let [verbatim-form (scribble-verbatim-read reader s)
                   forms (scribble-form-reader reader)]
               (cond

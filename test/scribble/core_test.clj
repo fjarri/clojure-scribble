@@ -15,7 +15,7 @@
 ; Tests for the reader macro
 ; Mostly taken from http://docs.racket-lang.org/scribble/reader.html
 
-(deftest test-reader (facts "about the reader"
+(deftest test-reader (facts "about the syntax"
 
   ; difference from the original Scribble syntax: @; is a normal comment,
   ; @;; is a TeX-like (whitespace-consuming) comment
@@ -286,6 +286,26 @@
       2]
     =>
    '(foo bar 2))
+
+))
+
+(deftest test-reader-exceptions (facts "about the symbol resolution"
+
+  (fact "literals are resolved"
+   '@foo{aaa @nil bbb @true ccc}
+    =>
+   '(foo ["aaa " nil " bbb " true " ccc"]))
+
+  (fact "known symbols are resolved"
+    (let [formatter (fn [fmt]
+           (fn [str-vec] (format fmt (clojure.string/join str-vec))))
+          bf (formatter "*%s*")
+          it (formatter "/%s/")
+          ul (formatter "_%s_")
+          text clojure.string/join]
+      @text{@it{Note}: @bf{This is @ul{not} a pipe}.}
+      =>
+      "/Note/: *This is _not_ a pipe*."))
 
 ))
 
