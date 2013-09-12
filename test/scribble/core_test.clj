@@ -286,6 +286,15 @@
     =>
    '(foo bar 2))
 
+  ; A difference from the orignial Scribble:
+  ; Since we allow multiple text blocks after a command,
+  ; they all get consumed.
+  ; The original Scribble produces `((foo "bar") "baz")`.
+  (fact "scribble form as a scribble command"
+   '@@foo{bar}{baz}
+    =>
+   '(foo ["bar"] ["baz"]))
+
 ))
 
 (deftest test-symbol-resolution (facts "about the symbol resolution"
