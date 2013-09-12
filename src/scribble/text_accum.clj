@@ -1,10 +1,10 @@
 (ns scribble.text-accum)
 
 
-(defn ^:private str-accum-finalize [str-accum]
+(defn- str-accum-finalize [str-accum]
   (clojure.string/join str-accum))
 
-(defn ^:private str-accum-finalize-trimr [str-accum]
+(defn- str-accum-finalize-trimr [str-accum]
   (let [s (str-accum-finalize str-accum)
         trimmed-s (clojure.string/trimr s)
         count-full (count s)
@@ -35,7 +35,7 @@
     (.trailing-ws? token)))
 
 
-(defn ^:private text-accum-append
+(defn- text-accum-append
   [text-accum s]
   (conj text-accum s))
 
@@ -46,19 +46,19 @@
     text-accum))
 
 
-(defn ^:private append-trailing-ws
+(defn- append-trailing-ws
   [text-accum s]
   (if (empty? s)
     text-accum
     (text-accum-append text-accum (make-token s :trailing-ws true))))
 
-(defn ^:private append-string
+(defn- append-string
   [text-accum s]
   (if (empty? s)
     text-accum
     (text-accum-append text-accum (make-token s))))
 
-(defn ^:private append-form
+(defn- append-form
   [text-accum f]
   (text-accum-append text-accum (make-token f)))
 

@@ -11,73 +11,69 @@
   (:require [scribble.text-accum :refer :all])
   (:import [scribble.text_accum TextToken]))
 
-(defn id
-  "Used to help the coverage tester."
-  [x]
-  x)
 
-(defn whitespace-or-newline?
+(defn- whitespace-or-newline?
   [^TextToken token]
   (or
     (.newline? token)
     (.leading-ws? token)
     (.trailing-ws? token)))
 
-(defn whitespace-only?
+(defn- whitespace-only?
   "Returns `true` if the sequence `v` contains only `\\newline``s
   and strings of whitespace characters."
   [^TextToken token]
   (every? whitespace-or-newline? token))
 
-(defn trim-leading-newline
+(defn- trim-leading-newline
   "Trim (a possible whitespace string and) a newline string from the vector `v`,
   if they are present."
   [v]
   (if (empty? v)
-    (id v)
+    v
     (let [^TextToken t-first (nth v 0)]
       (if (= (count v) 1)
         (if (.newline? t-first)
-          (id [])
-          (id v))
+          []
+          v)
         (let [^TextToken t-second (nth v 1)]
           (cond
             (.newline? t-first) (subvec v 1)
             (and (.leading-ws? t-first) (.newline? t-second)) (subvec v 2)
-            :else (id v)))))))
+            :else v))))))
 
-(defn trim-trailing-newline
+(defn- trim-trailing-newline
   "Trim a newline string (and a possible whitespace string) from the vector `v`,
   if they are present."
   [v]
   (if (empty? v)
-    (id v)
+    v
     (let [n-last (dec (count v))
           ^TextToken t-last (nth v n-last)]
       (if (= (count v) 1)
         (if (.newline? t-last)
-          (id [])
-          (id v))
+          []
+          v)
         (let [n-prev (dec n-last)
               ^TextToken t-prev (nth v n-prev)]
           (cond
             (.newline? t-last) (subvec v 0 n-last)
             (and (.leading-ws? t-last) (.newline? t-prev)) (subvec v 0 n-prev)
-            :else (id v)))))))
+            :else v))))))
 
-(defn trim-whitespace-pred [indent ^TextToken token]
+(defn- trim-whitespace-pred [indent ^TextToken token]
   (when-not (.trailing-ws? token)
     (if (.leading-ws? token)
       (when (> (count (.contents token)) indent)
         (map-contents #(subs % indent) token))
       token)))
 
-(defn trim-whitespace [v indent]
+(defn- trim-whitespace [v indent]
   (filterv #(not (nil? %))
     (map (partial trim-whitespace-pred indent) v)))
 
 
-(defn get-starting-indent [v starting-indent]
+(defn- get-starting-indent [v starting-indent]
   (if (> (count v) 1)
     (let [t0 ^TextToken (nth v 0)
           t1 ^TextToken (nth v 1)]
@@ -86,7 +82,7 @@
         starting-indent))
     starting-indent))
 
-(defn text-trim-whitespace
+(defn- text-trim-whitespace
   "Removes excessive whitespace according to the following rules:
 
   - If the vector starts with a `\\newline`, the size of the following whitespace
