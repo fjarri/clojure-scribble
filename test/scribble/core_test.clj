@@ -1,7 +1,6 @@
 (ns scribble.core-test
   (:use [midje.sweet])
   (:require [clojure.test :refer :all]
-            [scribble.repr :refer :all]
             [scribble.core :refer :all]))
 
 
