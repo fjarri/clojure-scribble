@@ -209,6 +209,11 @@
    =>
    '(foo ["bar}@{baz"]))
 
+  (fact "balanced escaped text block delimiters in an escaped text block"
+   '@foo|{Nesting |{is}| ok}|
+    =>
+   '(foo ["Nesting |{is}| ok"]))
+
   (fact "an escaped nested command in an escaped text block"
    '@foo|{bar |@x{X} baz}|
     =>

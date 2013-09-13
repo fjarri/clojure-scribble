@@ -76,9 +76,47 @@
          ; FIXME: using a custom type will be faster
          state {:leading-ws true
                 :brace-level 0
-                :escaped-scribble-char false}]
+                :escaped-char false}]
     (let [c (reader-methods/read-1 reader)]
       (cond
+
+        (and escaped (= c scribble-verbatim-start))
+          (let [next-c (reader-methods/peek reader)]
+            (condp = next-c
+              scribble-char
+                (recur text-accum str-accum
+                  (assoc state :escaped-char true))
+              scribble-text-start
+                (recur text-accum (conj str-accum c)
+                  (assoc state :escaped-char true))
+              (recur text-accum (conj str-accum c) state)))
+
+        (and escaped (= c scribble-text-start) (:escaped-char state))
+          (recur text-accum (conj str-accum c)
+            (assoc state :escaped-char false :brace-level (inc (:brace-level state))))
+
+        (and escaped (= c scribble-text-end) (= (reader-methods/peek reader) scribble-verbatim-end))
+          (let [next-c (reader-methods/read-1 reader)]
+            (if (zero? (:brace-level state))
+              (if (:leading-ws state)
+                (dump-leading-ws text-accum str-accum)
+                (dump-string text-accum str-accum))
+              (if (:leading-ws state)
+                (recur (dump-leading-ws text-accum str-accum) [c next-c]
+                  (assoc state :leading-ws false :brace-level (dec (:brace-level state))))
+                (recur text-accum (-> str-accum (conj c) (conj next-c))
+                  (update-in state [:brace-level] dec)))))
+
+        (and escaped (= c scribble-char) (:escaped-char state))
+          (let [nested-form (scribble-entry-reader reader c)
+                [text-accum str-accum]
+                  (if (identical? nested-form reader)
+                    [text-accum str-accum]
+                    (dump-nested-form text-accum str-accum nested-form))]
+            (recur text-accum str-accum
+              (assoc state :leading-ws false :escaped-char false)))
+
+
 
         ; Starting text-mode symbol
         ; We allow them to appear un-escaped if they are balanced
@@ -90,34 +128,27 @@
           (recur text-accum (conj str-accum c)
             (update-in state [:brace-level] inc))
 
-        ; end of text mode
-        (or
-          (and (not escaped) (zero? (:brace-level state)) (= c scribble-text-end))
-          (and escaped (= c scribble-text-end) (= (reader-methods/peek reader) scribble-verbatim-end)))
+        (and (not escaped) (= c scribble-text-end) (zero? (:brace-level state)))
           (if (:leading-ws state)
             (dump-leading-ws text-accum str-accum)
-            (dump-string text-accum str-accum :separate-trailing-ws true))
-
-        (and (not escaped) (= c scribble-text-end) (:leading-ws state))
-          (recur (dump-leading-ws text-accum str-accum) [c]
-            (assoc state :leading-ws false :brace-level (dec (:brace-level state))))
+            (dump-string text-accum str-accum))
         (and (not escaped) (= c scribble-text-end))
-          (recur text-accum (conj str-accum c)
-            (update-in state [:brace-level] dec))
+          (if (:leading-ws state)
+            (recur (dump-leading-ws text-accum str-accum) [c]
+              (assoc state :leading-ws false :brace-level (dec (:brace-level state))))
+            (recur text-accum (conj str-accum c)
+              (update-in state [:brace-level] dec)))
 
-        ; start of a Scribble form
-        (and (= c scribble-verbatim-start) escaped)
-          (if (= (reader-methods/peek reader) scribble-char)
-            (recur text-accum str-accum (assoc state :escaped-scribble-char true))
-            (recur text-accum (conj str-accum c) state))
-        (and (= c scribble-char) (or (not escaped) (:escaped-scribble-char state)))
+        (and (not escaped) (= c scribble-char))
           (let [nested-form (scribble-entry-reader reader c)
                 [text-accum str-accum]
                   (if (identical? nested-form reader)
                     [text-accum str-accum]
                     (dump-nested-form text-accum str-accum nested-form))]
             (recur text-accum str-accum
-              (assoc state :leading-ws false :escaped-scribble-char false)))
+              (assoc state :leading-ws false)))
+
+
 
         ; unexpected EOF
         (nil? c) (reader-error reader "Unexpected EOF while in text reading mode")
@@ -126,7 +157,7 @@
         (= c \newline)
           (let [text-accum
                  (-> text-accum
-                   (dump-string str-accum :separate-trailing-ws true)
+                   (dump-string str-accum)
                    append-newline)]
             (recur text-accum [] (assoc state :leading-ws true)))
 
@@ -145,12 +176,7 @@
         column (if (nil? c) 0 c)
         text-accum (scribble-text-reader reader escaped)
         text-form (text-postprocess text-accum column)]
-    (if escaped
-      (let [c (reader-methods/read-1 reader)]
-        (if (= c scribble-verbatim-end)
-          text-form
-          (reader-error reader "Did not find the matching end of an escaped text block")))
-      text-form)))
+    text-form))
 
 (defn read-until
   [reader stop-condition?]
