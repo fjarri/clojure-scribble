@@ -110,6 +110,14 @@
    '(foo [(b [(u 3) " " (u ["4"])]) "\n"
       "blah"]))
 
+  (fact "whitespace is attached to the text at the ends of the text block"
+   '@foo{ aa
+         b
+         c }
+    =>
+   '(foo [" aa" "\n" "b" "\n" "c "]))
+
+
   ; Missing command part
 
   (fact "missing command part"

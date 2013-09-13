@@ -96,7 +96,7 @@
           (and escaped (= c scribble-text-end) (= (reader-methods/peek reader) scribble-verbatim-end)))
           (if (:leading-ws state)
             (dump-leading-ws text-accum str-accum)
-            (dump-string text-accum str-accum))
+            (dump-string text-accum str-accum :separate-trailing-ws true))
 
         (and (not escaped) (= c scribble-text-end) (:leading-ws state))
           (recur (dump-leading-ws text-accum str-accum) [c]

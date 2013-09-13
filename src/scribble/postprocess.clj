@@ -82,6 +82,35 @@
         starting-indent))
     starting-indent))
 
+(defn- text-merge-starting-whitespace
+  "If the text accumulator starts with a leading whitespace
+  and a non-whitespace string, merges them together."
+  [v]
+  (if (< (count v) 2)
+    v
+    (let [t0 ^TextToken (nth v 0)
+          t1 ^TextToken (nth v 1)]
+      (if (and (.leading-ws? t0) (string? (.contents t1)) (not (.newline? t1)))
+        ; FIXME: prepending is O(N). Need to use finger trees.
+        (into [(make-token (str (.contents t0) (.contents t1)))] (subvec v 2))
+        v))))
+
+(defn- text-merge-ending-whitespace
+  "If the text accumulator ends with a non-whitespace string and
+  a trailing whitespace, merges them together."
+  [v]
+  (if (< (count v) 2)
+    v
+    (let [n-last (dec (count v))
+          n-prev (dec n-last)
+          t-last ^TextToken (nth v n-last)
+          t-prev ^TextToken (nth v n-prev)]
+      (if (and (.trailing-ws? t-last) (string? (.contents t-prev)) (not (.newline? t-prev)))
+        (conj
+          (subvec v 0 n-prev)
+          (make-token (str (.contents t-prev) (.contents t-last))))
+        v))))
+
 (defn- text-trim-whitespace
   "Removes excessive whitespace according to the following rules:
 
@@ -107,5 +136,7 @@
 (defn text-postprocess
   [text-accum starting-indent]
   (-> text-accum
+    text-merge-starting-whitespace
+    text-merge-ending-whitespace
     (text-trim-whitespace starting-indent)
     text-accum-finalize))
