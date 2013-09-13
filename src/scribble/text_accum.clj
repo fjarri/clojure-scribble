@@ -88,10 +88,14 @@
 
 (defn dump-nested-form
   "Need to return `str-accum` because in case of the comment we do not want to break the string."
-  [text-accum str-accum nested-form]
+  [text-accum str-accum nested-form leading-ws]
   (cond
+    leading-ws
+      (dump-nested-form (dump-leading-ws text-accum str-accum) [] nested-form false)
+
     ; it was a string: special case, append it to the accumulator
     (string? nested-form)
+      ; FIXME: prepending is O(n)
       [text-accum (vec (concat str-accum nested-form))]
 
     ; an actual form

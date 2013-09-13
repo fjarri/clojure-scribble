@@ -112,7 +112,7 @@
                 [text-accum str-accum]
                   (if (identical? nested-form reader)
                     [text-accum str-accum]
-                    (dump-nested-form text-accum str-accum nested-form))]
+                    (dump-nested-form text-accum str-accum nested-form (:leading-ws state)))]
             (recur text-accum str-accum
               (assoc state :leading-ws false :escaped-char false)))
 
@@ -144,7 +144,7 @@
                 [text-accum str-accum]
                   (if (identical? nested-form reader)
                     [text-accum str-accum]
-                    (dump-nested-form text-accum str-accum nested-form))]
+                    (dump-nested-form text-accum str-accum nested-form (:leading-ws state)))]
             (recur text-accum str-accum
               (assoc state :leading-ws false)))
 

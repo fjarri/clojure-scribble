@@ -79,6 +79,15 @@
       "  " "ddd" "\n"
       "ttt"]))
 
+  (fact "leading indentation is truncated in front of nested forms"
+   '@foo{blah blah
+         @yada{yada}
+           @ddd{ttt}}
+    =>
+   '(foo ["blah blah" "\n"
+      (yada ["yada"]) "\n"
+      "  " (ddd ["ttt"])]))
+
   ; If the beginning { is directly followed by \n,
   ; The starting indentation is taken from the next line.
   ; Same rules as before apply for the remaining lines.
@@ -223,6 +232,19 @@
    '@foo|{bar |@x|{@}| baz}|
     =>
    '(foo ["bar " (x ["@"]) " baz"]))
+
+  ; check that there is no off-by-one error because the delimiter is
+  ; two symbols instead of one
+  (fact "an escaped text block truncates leading indentation properly"
+   '@foo|{Maze
+          |@bar{is}
+         Life!
+           blah blah}|
+    =>
+   '(foo ["Maze" "\n"
+      (bar ["is"]) "\n"
+      "Life!" "\n"
+      " " "blah blah"]))
 
   (fact "a verbatim text block"
    '@foo|--{bar}@|{baz}--|
