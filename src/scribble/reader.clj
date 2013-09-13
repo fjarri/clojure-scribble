@@ -82,6 +82,10 @@
 
         ; Starting text-mode symbol
         ; We allow them to appear un-escaped if they are balanced
+        (and (not escaped) (= c scribble-text-start) (:leading-ws state))
+          (recur (dump-leading-ws text-accum str-accum) [c]
+            (assoc state :leading-ws false :brace-level (inc (:brace-level state))))
+
         (and (not escaped) (= c scribble-text-start))
           (recur text-accum (conj str-accum c)
             (update-in state [:brace-level] inc))
@@ -289,6 +293,10 @@
         (do
           (reader-methods/unread reader c)
           (let [command (if (symbol-start? c)
+                          ; reading a symbol by ourselves,
+                          ; because we need to catch '|', which is tecnhically
+                          ; allowed in Clojure symbols, and will be consumed by
+                          ; `read-next`.
                           (read-symbol reader false)
                           (reader-methods/read-next reader))
                 forms (scribble-form-reader reader)]

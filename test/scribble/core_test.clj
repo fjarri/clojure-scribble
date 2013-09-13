@@ -188,6 +188,12 @@
        "  " "*p = '\\n';" "\n"
        "}"]))
 
+  ; A regression for a bug in text reader logic
+  (fact "text block delimiters at the beginning of text mode work correctly"
+   '@foo{{{}}{}}
+    =>
+   '(foo ["{{}}{}"]))
+
   ; Here strings
 
   (fact "unbalanced text block delimiters in an escaped text block"
