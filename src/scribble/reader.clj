@@ -27,14 +27,17 @@
 (defn symbol-start?
   [^Character c]
   (or
-    (Character/isLetterOrDigit c)
+    (Character/isLetter c)
     (contains? scribble-symbol-start c)))
 
 (def scribble-symbol-end
   #{scribble-char
     scribble-text-start
+    scribble-text-end
     scribble-normal-start
+    scribble-normal-end
     scribble-verbatim-start
+    ;scribble-verbatim-end
     \space
     \tab
     \newline})
