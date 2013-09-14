@@ -135,14 +135,14 @@
               (assoc state :here-str-pos 0)))
 
         (and escaped
-            (> (:here-str-pos state) 0)
+            (pos? (:here-str-pos state))
             (< (:here-str-pos state) here-marker-len)
             (= c (nth here-start (:here-str-pos state))))
           (recur text-accum (conj str-accum c)
             (update-in state [:here-str-pos] inc))
 
         (and escaped
-            (< (:here-str-pos state) 0)
+            (neg? (:here-str-pos state))
             (< (- (:here-str-pos state)) here-marker-len)
             (= c (nth here-end (- (:here-str-pos state)))))
           (recur text-accum (conj str-accum c)

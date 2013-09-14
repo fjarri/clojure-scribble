@@ -79,11 +79,11 @@
   ; Out of those we select the smallest one.
   (let [ws-candidates (subvec v 0 (dec (count v)))
         next-elems (subvec v 1)
-        filter-pred (fn [[elem next-elem]]
+        filter-pred (fn [[^TextToken elem ^TextToken next-elem]]
           (and (.leading-ws? elem) (not (.newline? next-elem))))
         ws-pairs (filter filter-pred
           (map (fn [a b] [a b]) ws-candidates next-elems))
-        map-pred (fn [[elem next-elem]] (count (.contents elem)))
+        map-pred (fn [[^TextToken elem ^TextToken next-elem]] (count (.contents elem)))
         ws-lengths (map map-pred ws-pairs)]
     (if (empty? ws-lengths)
       0
