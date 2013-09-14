@@ -72,15 +72,31 @@
   (filterv #(not (nil? %))
     (map (partial trim-whitespace-pred indent) v)))
 
+(defn- find-starting-indent [v]
+  ; We need a list of all leading-ws tokens, which are:
+  ; - not last,
+  ; - have something non-whitespace after them.
+  ; Out of those we select the smallest one.
+  (let [ws-candidates (subvec v 0 (dec (count v)))
+        next-elems (subvec v 1)
+        filter-pred (fn [[elem next-elem]]
+          (and (.leading-ws? elem) (not (.newline? next-elem))))
+        ws-pairs (filter filter-pred
+          (map (fn [a b] [a b]) ws-candidates next-elems))
+        map-pred (fn [[elem next-elem]] (count (.contents elem)))
+        ws-lengths (map map-pred ws-pairs)]
+    (if (empty? ws-lengths)
+      0
+      (reduce min ws-lengths))))
 
 (defn- get-starting-indent [v starting-indent]
-  (if (> (count v) 1)
+  (if (< (count v) 2)
+    starting-indent
     (let [t0 ^TextToken (nth v 0)
           t1 ^TextToken (nth v 1)]
-      (if (and (.newline? t0) (.leading-ws? t1))
-        (-> t1 .contents count)
-        starting-indent))
-    starting-indent))
+      (if (or (.newline? t0) (and (.leading-ws? t0) (.newline? t1)))
+        (find-starting-indent v)
+        starting-indent))))
 
 (defn- text-merge-starting-whitespace
   "If the text accumulator starts with a leading whitespace

@@ -89,20 +89,21 @@
       "  " (ddd ["ttt"])]))
 
   ; If the beginning { is directly followed by \n,
-  ; The starting indentation is taken from the next line.
-  ; Same rules as before apply for the remaining lines.
-  (fact "leading indentation and a starting newline are truncated"
+  ; the starting indentation is taken from the leftmost non-empty line.
+  (fact "leading indentation and the starting newline are truncated"
    '@foo{
       blah blah
       yada yada
         ddd
+  @; non-consuming comment
     ttt
    }
     =>
    '(foo [
-      "blah blah" "\n"
-      "yada yada" "\n"
-      "  " "ddd" "\n"
+      "  " "blah blah" "\n"
+      "  " "yada yada" "\n"
+      "    " "ddd" "\n"
+      "\n"
       "ttt"]))
 
   (fact "leading indentation with nested forms is truncated"
@@ -382,6 +383,19 @@
     =>
    '(foo ["Alice" "Bob"
       "Carol"]))
+
+  ; Spaces, Newlines, and Indentation
+
+  (fact "eee"
+   '@foo{
+    }
+    =>
+   '(foo ["\n"]))
+
+  (fact "ewew"
+   '@foo{
+    bar
+    })
 
 ))
 
