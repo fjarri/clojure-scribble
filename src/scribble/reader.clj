@@ -343,17 +343,11 @@
       (whitespace? c) (reader-error reader "Unexpected whitespace at the start of a Scribble form")
       (nil? c) (reader-error reader "Unexpected EOF at the start of a Scribble form")
       (= c scribble-verbatim-start)
-        (let [s (read-until reader #(or (= % scribble-verbatim-end) (= % scribble-text-start)))
-              c (reader-methods/peek reader)]
-          (reader-methods/read-1 reader)
-          (if (= c scribble-verbatim-end)
-            (try-recognize-symbol reader s)
-            (let [verbatim-form (scribble-text-block-reader reader s)
-                  forms (scribble-form-reader reader)]
-              (cond
-                (identical? reader forms) (list verbatim-form)
-                (empty? forms) (list verbatim-form)
-                :else (cons verbatim-form forms)))))
+        (let [next-c (reader-methods/peek reader)]
+          (if (= next-c scribble-verbatim-start)
+            (scribble-form-reader reader)
+            (mark-for-splice
+              (reader-methods/read-delimited-list scribble-verbatim-end reader))))
       :else
         (do
           (reader-methods/unread reader c)

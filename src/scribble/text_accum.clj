@@ -86,6 +86,23 @@
       (append-string s)
       (append-trailing-ws trailing-ws))))
 
+(defn mark-for-splice
+  [l]
+  (with-meta l {::splice true}))
+
+(defn- apply-from-list
+  [init-res func init-l]
+  (if (empty? init-l)
+    init-res
+    (loop [res init-res
+           l init-l]
+      (let [first-elem (first l)
+            rest-elems (rest l)
+            res (func res first-elem)]
+        (if (empty? rest-elems)
+          res
+          (recur res rest-elems))))))
+
 (defn dump-nested-form
   "Need to return `str-accum` because in case of the comment we do not want to break the string."
   [text-accum str-accum nested-form leading-ws]
@@ -99,8 +116,10 @@
       [text-accum (vec (concat str-accum nested-form))]
 
     ; an actual form
-    :else (let [text-accum
-           (-> text-accum
-             (dump-string-verbatim str-accum)
-             (append-form nested-form))]
-      [text-accum []])))
+    :else
+      (let [text-accum-with-str (dump-string-verbatim text-accum str-accum)
+            text-accum
+              (if (::splice (meta nested-form))
+                (apply-from-list text-accum-with-str append-form nested-form)
+                (append-form text-accum-with-str nested-form))]
+        [text-accum []])))

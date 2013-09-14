@@ -167,12 +167,12 @@
    '(["blah " foo- " blah"]))
 
   (fact "escaped command in a text block"
-   '@{blah @|foo|- blah}
+   '@{blah @|foo |- blah}
     =>
    '(["blah " foo "- blah"]))
 
   (fact "text mode starts right after an escaped command"
-   '@{blah @|foo|[3] blah}
+   '@{blah @|foo |[3] blah}
     =>
    '(["blah " foo "[3] blah"]))
 
@@ -306,10 +306,10 @@
       "baz"]))
 
   (fact "a lone text part can be escaped"
-   '@|{abcde}| => '(["abcde"]))
+   '@||{abcde}| => '(["abcde"]))
 
   (fact "a lone text part can be verbatim"
-   '@|-abc{abcde}cba-| => '(["abcde"]))
+   '@||-abc{abcde}cba-| => '(["abcde"]))
 
 
   (fact "commented text form glues surrounding strings"
@@ -340,6 +340,34 @@
    '@@foo{bar}{baz}
     =>
    '(foo ["bar"] ["baz"]))
+
+
+  ; Racket Expression Escapes
+
+  (fact "the end of a standalone symbol is detected properly"
+   '@foo{foo@bar.}
+    =>
+   '(foo ["foo" bar.]))
+
+  (fact "text in a standalone expression is not merged with the surrounding text"
+   '@foo{x@|"y"|z}
+    =>
+   '(foo ["x" "y" "z"]))
+
+  (fact "a number as a standalone expression"
+   '@foo{foo@3.}
+    =>
+   '(foo ["foo" 3.0]))
+
+  (fact "a number as an escaped expression"
+   '@foo{foo@|3 |.}
+    =>
+   '(foo ["foo" 3 "."]))
+
+  (fact "escaped expression with multiple forms is spliced"
+   '@foo{x@|1 (+ 2 3) 4 |y}
+    =>
+   '(foo ["x" 1 (+ 2 3) 4 "y"]))
 
 ))
 

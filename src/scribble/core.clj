@@ -16,6 +16,11 @@
 ;;   them according to Clojure syntax.
 ;;   Our reader gets control only when the Clojure reader finishes,
 ;;   and uses the resulting form as a command.
+;; - Since `|` is an allowed character in symbols, escaped forms must contain
+;;   a trailing whitespace: `@foo{foo@|3 |.}`.
+;; - To make it easier to distinguish between the starting escaped string
+;;   and escaped form, the escaped string must start with two
+;;   verbatim characters, e.g. `@||{escaped string}|`.
 ;;
 ;; Current problems:
 ;;
