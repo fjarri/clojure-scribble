@@ -256,6 +256,11 @@
     =>
    '(foo ["bar}@|{baz"]))
 
+  (fact "a verbatim text block with a nested form"
+   '@foo|!!{X |!!@b{Y}...}!!|
+    =>
+   '(foo ["X " (b ["Y"]) "..."]))
+
   ; Empty blocks
 
   (fact "an empty normal block is ignored"
