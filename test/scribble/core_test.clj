@@ -369,6 +369,20 @@
     =>
    '(foo ["x" 1 (+ 2 3) 4 "y"]))
 
+  (fact "escaped expression with a line break"
+   '@foo{x@|*
+        * |y}
+    =>
+   '(foo ["x" *
+      * "y"]))
+
+  (fact "an empty escaped expression"
+   '@foo{Alice@| |Bob@|
+         |Carol}
+    =>
+   '(foo ["Alice" "Bob"
+      "Carol"]))
+
 ))
 
 (deftest test-symbol-resolution (facts "about the symbol resolution"
