@@ -25,8 +25,8 @@
 ;; - Other significant characters (brackets, braces, literal symbol quotes)
 ;;   may be changed as well.
 (ns scribble.core
-  (:use [clarity.reader.hacking :only [with-reader-macro]]
-        [clarity.reader.macros :only [use-reader-macros]])
+  (:use [chiara.reader.hacking :only [with-reader-macro]]
+        [chiara.reader.macros :only [use-reader-macros]])
   (:require [scribble.reader :refer :all]))
 
 (defn use-scribble

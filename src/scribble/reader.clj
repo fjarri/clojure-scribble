@@ -1,7 +1,7 @@
 (ns scribble.reader
   (:import [clojure.lang LineNumberingPushbackReader])
   (:use [clojure.tools.reader.reader-types :only [reader-error]])
-  (:require [clarity.reader.utils :as reader-methods]
+  (:require [chiara.reader.utils :as reader-methods]
             [scribble.text-accum :refer :all]
             [scribble.postprocess :refer :all]
             [scribble.symbol :refer :all]))
@@ -57,11 +57,6 @@
 (defn inverse-vec
   [v]
   (vec (map inverse-char (reverse v))))
-
-
-(defn reader-position [^LineNumberingPushbackReader reader]
-  (if (instance? LineNumberingPushbackReader reader)
-    [(-> reader .getLineNumber int) (-> reader .getColumnNumber dec int)]))
 
 
 (declare scribble-entry-reader)
@@ -172,7 +167,7 @@
 
 (defn scribble-text-block-reader
   [reader escaped]
-  (let [[_ c] (reader-position reader)
+  (let [[_ c] (reader-methods/reader-position reader)
         column (if (nil? c) 0 c)
         text-accum (scribble-text-reader reader escaped)
         text-form (text-postprocess text-accum column)]
