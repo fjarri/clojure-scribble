@@ -225,29 +225,6 @@
             (clojure.string/join chars))
         :else (recur (conj chars c))))))
 
-(defn read-until-vec
-  [reader end-vec]
-  (let [end-vec-len (count end-vec)]
-    (loop [buffer []]
-      (let [c (reader-methods/read-1 reader)
-            buffer (conj buffer c)
-            buffer-len (count buffer)
-            rest-len (- buffer-len end-vec-len)]
-        (if (and (> buffer-len end-vec-len) (= end-vec (subvec buffer rest-len)))
-          (clojure.string/join (subvec buffer 0 rest-len))
-          (recur buffer))))))
-
-(defn scribble-verbatim-read
-  [reader here-str]
-  (let [end-vec (concat [scribble-text-end] (inverse-vec (vec here-str)) [scribble-verbatim-end])]
-    (reader-methods/read-1 reader) ; read `scribble-text-start`
-    [(read-until-vec reader end-vec)]))
-
-(defn scribble-verbatim-reader
-  [reader]
-  (let [here-vec (read-until reader #(= % scribble-text-start))]
-    (scribble-verbatim-read reader (clojure.string/join here-vec))))
-
 (defn scribble-form-reader
   [reader]
   (loop [forms-read []
@@ -314,13 +291,8 @@
     (reader-error reader "Invalid symbol: " token)))
 
 (defn read-symbol
-  [reader verbatim]
-  (if verbatim
-    (let [sym (try-recognize-symbol reader
-                (read-until reader #(or (= % scribble-verbatim-end) (= % scribble-text-start))))]
-      (reader-methods/read-1 reader)
-      sym)
-    (try-recognize-symbol reader (read-until reader symbol-end?))))
+  [reader]
+  (try-recognize-symbol reader (read-until reader symbol-end?)))
 
 (defn scribble-entry-reader
   "The entry point of the reader macro."
@@ -356,7 +328,7 @@
                           ; because we need to catch '|', which is tecnhically
                           ; allowed in Clojure symbols, and will be consumed by
                           ; `read-next`.
-                          (read-symbol reader false)
+                          (read-symbol reader)
                           (reader-methods/read-next reader))
                 forms (scribble-form-reader reader)]
             (cond
