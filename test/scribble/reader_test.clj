@@ -52,12 +52,12 @@
     =>
    '(foo ["blah blah blah"]))
 
-  (fact "quotes in a text block"
+  (fact "quotes in a body part"
    '@foo{blah "blah" (`blah'?)}
     =>
    '(foo ["blah \"blah\" (`blah'?)"]))
 
-  (fact "a normal block and a text block"
+  (fact "a normal block and a body part"
    '@foo[1 2]{3 4}
     =>
    '(foo 1 2 ["3 4"]))
@@ -131,7 +131,7 @@
    '(foo [(b [(u 3) " " (u ["4"])]) "\n"
       "blah"]))
 
-  (fact "whitespace is attached to the text at the ends of the text block"
+  (fact "whitespace is attached to the text at the ends of a body part"
    '@foo{ aa
          b
          c }
@@ -167,23 +167,23 @@
     =>
    'foo)
 
-  (fact "command part only in a text block"
+  (fact "command part only in a body part"
    '@{blah @foo blah}
     =>
    '(["blah " foo " blah"]))
 
   ; ':' in identifiers has special meaning in Clojure, so changed it to '-'
-  (fact "non-trivial command in a text block"
+  (fact "non-trivial command in a body part"
    '@{blah @foo- blah}
     =>
    '(["blah " foo- " blah"]))
 
-  (fact "escaped command in a text block"
+  (fact "escaped command in a body part"
    '@{blah @|foo |- blah}
     =>
    '(["blah " foo "- blah"]))
 
-  (fact "text mode starts right after an escaped command"
+  (fact "body part resumes right after an escaped command"
    '@{blah @|foo |[3] blah}
     =>
    '(["blah " foo "[3] blah"]))
@@ -203,12 +203,12 @@
     =>
    '(foo ["eli@barzilay.org"]))
 
-  (fact "the text block delimiter wrapped in a string"
+  (fact "the body part delimiter wrapped in a string"
    '@foo{A @"{" begins a block}
     =>
    '(foo ["A { begins a block"]))
 
-  (fact "balanced text block delimiters do not require escaping"
+  (fact "balanced body part delimiters do not require escaping"
    '@C{while (*(p++)) {
          *p = '\n';
       }}
@@ -217,37 +217,37 @@
        "  " "*p = '\\n';" "\n"
        "}"]))
 
-  ; A regression for a bug in text reader logic
-  (fact "text block delimiters at the beginning of text mode work correctly"
+  ; A regression for a bug in the body part reader logic
+  (fact "body part delimiters at the beginning of a body part work correctly"
    '@foo{{{}}{}}
     =>
    '(foo ["{{}}{}"]))
 
   ; Here strings
 
-  (fact "unbalanced text block delimiters in an escaped text block"
+  (fact "unbalanced body part delimiters in an escaped body part"
    '@foo|{bar}@{baz}|
    =>
    '(foo ["bar}@{baz"]))
 
-  (fact "balanced escaped text block delimiters in an escaped text block"
+  (fact "balanced escaped body part delimiters in an escaped body part"
    '@foo|{Nesting |{is}| ok}|
     =>
    '(foo ["Nesting |{is}| ok"]))
 
-  (fact "an escaped nested command in an escaped text block"
+  (fact "an escaped nested command in an escaped body part"
    '@foo|{bar |@x{X} baz}|
     =>
    '(foo ["bar " (x ["X"]) " baz"]))
 
-  (fact "an escaped nested text block in an escaped text block"
+  (fact "an escaped nested body part in an escaped body part"
    '@foo|{bar |@x|{@}| baz}|
     =>
    '(foo ["bar " (x ["@"]) " baz"]))
 
   ; check that there is no off-by-one error because the delimiter is
   ; two symbols instead of one
-  (fact "an escaped text block truncates leading indentation properly"
+  (fact "an escaped body part truncates leading indentation properly"
    '@foo|{Maze
           |@bar{is}
          Life!
@@ -258,17 +258,17 @@
       "Life!" "\n"
       " " "blah blah"]))
 
-  (fact "a verbatim text block"
+  (fact "an escaped body part with delimiters"
    '@foo|--{bar}@|{baz}--|
     =>
    '(foo ["bar}@|{baz"]))
 
-  (fact "a verbatim text block with mirrored delimiters"
+  (fact "an escaped body part with mirrored delimiters"
    '@foo|<(-[{bar}@|{baz}]-)>|
     =>
    '(foo ["bar}@|{baz"]))
 
-  (fact "a verbatim text block with a nested form"
+  (fact "an escaped body part with a nested form"
    '@foo|!!{X |!!@b{Y}...}!!|
     =>
    '(foo ["X " (b ["Y"]) "..."]))
@@ -277,11 +277,11 @@
 
   (fact "an empty normal block is ignored"
    '@foo[]{bar} => '(foo ["bar"]))
-  (fact "an empty normal block and a missing text block result in a form"
+  (fact "an empty normal block and a missing body part result in a form"
    '@foo[] => '(foo))
   (fact "a single command is read as a symbol"
    '@foo => 'foo)
-  (fact "an empty text block results in an empty text container"
+  (fact "an empty body part results in an empty text container"
    '@foo{} => '(foo []))
 
 
@@ -317,38 +317,38 @@
    '(["foo bar" "\n"
       "baz"]))
 
-  (fact "a lone text part can be escaped"
+  (fact "a lone body part can be escaped"
    '@||{abcde}| => '(["abcde"]))
 
-  (fact "a lone text part can be verbatim"
+  (fact "a lone body part can be escaped with delimiters"
    '@||-abc{abcde}cba-| => '(["abcde"]))
 
 
-  (fact "commented text form glues surrounding strings"
+  (fact "a comment form glues surrounding strings"
    '@foo{bar @;{some text
       with newlines
       or even valid nested expressions like @command[foo]{bar};} baz}
     =>
    '(foo ["bar  baz"]))
 
-  (fact "commented text form does not break whitespace truncation"
+  (fact "a comment form does not break whitespace truncation"
    '@foo{bar @;{blah
       blah;}
           baz}
     =>
    '(foo ["bar" "\n" " " "baz"]))
 
-  (fact "commented text works in normal mode"
+  (fact "a comment from works in normal mode"
    '@foo[bar @;{comment}
       2]
     =>
    '(foo bar 2))
 
   ; A difference from the orignial Scribble:
-  ; Since we allow multiple text blocks after a command,
+  ; Since we allow multiple body parts after a command,
   ; they all get consumed.
   ; The original Scribble produces `((foo "bar") "baz")`.
-  (fact "scribble form as a scribble command"
+  (fact "Scribble form as a command"
    '@@foo{bar}{baz}
     =>
    '(foo ["bar"] ["baz"]))
@@ -415,12 +415,12 @@
 ; Contain various corner cases.
 (deftest test-reader-coverage (facts "about the coverage"
 
-  (fact "EOF right after a scribble form"
+  (fact "EOF right after a Scribble form"
     (read-scribble "@foo{bar}")
     =>
     '(foo ["bar"]))
 
-  (fact "EOF right after a scribble form with an empty command and body parts"
+  (fact "EOF right after a Scribble form with an empty command and body parts"
     (read-scribble "@foo")
     =>
     'foo)
@@ -446,13 +446,13 @@
     =>
    '(foo ["abc}--"]))
 
-  (fact "comment inside an escaped text block"
+  (fact "comment inside an escaped body part"
    '@foo|{abc |@; comment
           cba}|
     =>
    '(foo ["abc" "\n" "cba"]))
 
-  (fact "final leading whitespace in an escaped text block"
+  (fact "final leading whitespace in an escaped body part"
    '@foo|{abc
     }|
     =>
@@ -511,7 +511,7 @@
     =>
     (throws "Invalid symbol: foo::"))
 
-  (fact "unexpected EOF in text mode"
+  (fact "unexpected EOF in a body part"
     (read-scribble "@foo{abc")
     =>
     (throws "Unexpected EOF while reading a body part"))

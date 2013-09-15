@@ -179,8 +179,8 @@
 
 (defn- read-body-part
   [^Settings settings- reader here-str]
-  ; FIXME: check that here-str does not contain verbatim start/end chars,
-  ; entry char, or body start/end chars
+  ; FIXME: check that here-str does not contain escape-start/end chars,
+  ; entry char, or body-start/end chars
   (let [[_ c] (reader-methods/reader-position reader)
         column (if (nil? c) 0 c)
         body-accum (read-body settings- reader here-str)
