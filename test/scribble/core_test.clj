@@ -509,6 +509,6 @@
   (fact "unexpected EOF in text mode"
     (read-scribble "@foo{abc")
     =>
-    (throws "Unexpected EOF while in text reading mode"))
+    (throws "Unexpected EOF while reading a body part"))
 
 ))

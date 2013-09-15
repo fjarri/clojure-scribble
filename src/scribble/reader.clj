@@ -1,94 +1,46 @@
 (ns scribble.reader
-  (:import [clojure.lang LineNumberingPushbackReader])
   (:use [clojure.tools.reader.reader-types :only [reader-error]])
   (:require [chiara.reader.utils :as reader-methods]
             [scribble.text-accum :refer :all]
             [scribble.postprocess :refer :all]
-            [scribble.symbol :refer :all]))
+            [scribble.symbol :refer :all]
+            [scribble.settings :refer :all])
+  (:import [scribble.settings Settings]))
 
 
-(defn whitespace? [c]
-  (or (= c \space) (= c \tab)))
-
-(def scribble-char \@)
-(def scribble-text-start \{)
-(def scribble-text-end \})
-(def scribble-normal-start \[)
-(def scribble-normal-end \])
-(def scribble-verbatim-start \|)
-(def scribble-verbatim-end \|)
-(def scribble-comment \;)
-
-
-(def scribble-symbol-start
-  ; according to http://clojure.org/reader (as of 1.5.1)
-  #{\* \+ \! \- \_ \? \/})
-
-(defn symbol-start?
-  [^Character c]
-  (or
-    (Character/isLetter c)
-    (contains? scribble-symbol-start c)))
-
-(def scribble-symbol-end
-  #{scribble-char
-    scribble-text-start
-    scribble-text-end
-    scribble-normal-start
-    scribble-normal-end
-    scribble-verbatim-start
-    ;scribble-verbatim-end
-    \space
-    \tab
-    \newline})
-
-(defn symbol-end?
-  [c]
-  (contains? scribble-symbol-end c))
-
-(defn inverse-char
-  [c]
-  (condp = c
-    \( \)
-    \) \(
-    \[ \]
-    \] \[
-    \< \>
-    \> \<
-    c))
-
-(defn inverse-vec
-  [v]
-  (vec (map inverse-char (reverse v))))
-
-(defn here-markers
+(defn- here-markers
   [here-str]
   (if (nil? here-str)
     [[] []]
     [
-      (str scribble-verbatim-start here-str)
+      (str \space here-str)
       (str
-        scribble-text-end
+        \space
         (clojure.string/join (inverse-vec (vec here-str))))]))
 
-(defn str-pop
+(defn- str-pop
   [v n]
   (if (zero? n)
     v
     (subvec v 0 (- (count v) n))))
 
-(declare scribble-entry-reader)
+(declare read-entry)
 
-(defn scribble-text-reader
+(defn- read-body
   "Returns a vector of strings and nested forms.
   The strings are separated as
   [leading whitespace, contents, trailing whitespace, newline]
   (for the ease of further processing)."
-  [reader here-str]
+  [^Settings settings- reader here-str]
   (let [[here-start here-end] (here-markers here-str)
         here-marker-len (count here-start)
-        escaped (not (nil? here-str))]
-  (loop [text-accum []
+        escaped (not (nil? here-str))
+        entry-char (.entry-char settings-)
+        body-start-char (.body-start-char settings-)
+        body-end-char (.body-end-char settings-)
+        escape-start-char (.escape-start-char settings-)
+        escape-end-char (.escape-end-char settings-)]
+  (loop [body-accum []
          str-accum []
          ; FIXME: using a custom type will be faster
          state {:leading-ws true
@@ -98,144 +50,144 @@
       (cond
 
         (and escaped
-             (= c scribble-verbatim-end)
+             (= c escape-end-char)
              (= (- (:here-str-pos state)) here-marker-len))
           (if (zero? (:brace-level state))
-            (dump-string text-accum (str-pop str-accum here-marker-len))
-            (recur text-accum (conj str-accum c)
+            (dump-string body-accum (str-pop str-accum here-marker-len))
+            (recur body-accum (conj str-accum c)
               (assoc state
                 :brace-level (dec (:brace-level state))
                 :here-str-pos 0)))
 
-        (and escaped (= c scribble-verbatim-start))
-          (let [[text-accum str-accum]
+        (and escaped (= c escape-start-char))
+          (let [[body-accum str-accum]
                   (if (:leading-ws state)
-                    [(dump-leading-ws text-accum str-accum) [c]]
-                    [text-accum (conj str-accum c)])]
-              (recur text-accum str-accum
+                    [(dump-leading-ws body-accum str-accum) [c]]
+                    [body-accum (conj str-accum c)])]
+              (recur body-accum str-accum
                 (assoc state
                   :here-str-pos 1
                   :leading-ws false)))
 
-        (and escaped (= c scribble-text-end))
-          (let [[text-accum str-accum]
+        (and escaped (= c body-end-char))
+          (let [[body-accum str-accum]
                   (if (:leading-ws state)
-                    [(dump-leading-ws text-accum str-accum) [c]]
-                    [text-accum (conj str-accum c)])]
-              (recur text-accum str-accum
+                    [(dump-leading-ws body-accum str-accum) [c]]
+                    [body-accum (conj str-accum c)])]
+              (recur body-accum str-accum
                 (assoc state
                   :here-str-pos -1
                   :leading-ws false)))
 
         (and escaped
-             (= c scribble-text-start)
+             (= c body-start-char)
              (= (:here-str-pos state) here-marker-len))
-          (recur text-accum (conj str-accum c)
+          (recur body-accum (conj str-accum c)
             (assoc state :here-str-pos 0
                          :brace-level (inc (:brace-level state))))
 
         (and escaped
-             (= c scribble-char)
+             (= c entry-char)
              (= (:here-str-pos state) here-marker-len))
-          (let [nested-form (scribble-entry-reader reader c)
+          (let [nested-form (read-entry settings- reader c)
                 str-accum (str-pop str-accum here-marker-len)
-                [text-accum str-accum]
+                [body-accum str-accum]
                   (if (identical? nested-form reader)
-                    [text-accum str-accum]
+                    [body-accum str-accum]
                     (dump-nested-form
-                      text-accum str-accum nested-form (:leading-ws state)))]
-            (recur text-accum str-accum
+                      body-accum str-accum nested-form (:leading-ws state)))]
+            (recur body-accum str-accum
               (assoc state :here-str-pos 0)))
 
         (and escaped
              (pos? (:here-str-pos state))
              (< (:here-str-pos state) here-marker-len)
              (= c (nth here-start (:here-str-pos state))))
-          (recur text-accum (conj str-accum c)
+          (recur body-accum (conj str-accum c)
             (update-in state [:here-str-pos] inc))
 
         (and escaped
              (neg? (:here-str-pos state))
              (< (- (:here-str-pos state)) here-marker-len)
              (= c (nth here-end (- (:here-str-pos state)))))
-          (recur text-accum (conj str-accum c)
+          (recur body-accum (conj str-accum c)
             (update-in state [:here-str-pos] dec))
 
 
-        ; Starting text-mode symbol
+        ; Starting body part symbol
         ; We allow them to appear un-escaped if they are balanced
-        (and (not escaped) (= c scribble-text-start) (:leading-ws state))
-          (recur (dump-leading-ws text-accum str-accum) [c]
+        (and (not escaped) (= c body-start-char) (:leading-ws state))
+          (recur (dump-leading-ws body-accum str-accum) [c]
             (assoc state :leading-ws false
                          :brace-level (inc (:brace-level state))))
 
-        (and (not escaped) (= c scribble-text-start))
-          (recur text-accum (conj str-accum c)
+        (and (not escaped) (= c body-start-char))
+          (recur body-accum (conj str-accum c)
             (update-in state [:brace-level] inc))
 
         (and (not escaped)
-             (= c scribble-text-end)
+             (= c body-end-char)
              (zero? (:brace-level state)))
           (if (:leading-ws state)
-            (dump-leading-ws text-accum str-accum)
-            (dump-string text-accum str-accum))
-        (and (not escaped) (= c scribble-text-end))
+            (dump-leading-ws body-accum str-accum)
+            (dump-string body-accum str-accum))
+        (and (not escaped) (= c body-end-char))
           (if (:leading-ws state)
-            (recur (dump-leading-ws text-accum str-accum) [c]
+            (recur (dump-leading-ws body-accum str-accum) [c]
               (assoc state :leading-ws false
                            :brace-level (dec (:brace-level state))))
-            (recur text-accum (conj str-accum c)
+            (recur body-accum (conj str-accum c)
               (update-in state [:brace-level] dec)))
 
-        (and (not escaped) (= c scribble-char))
-          (let [nested-form (scribble-entry-reader reader c)
-                [text-accum str-accum]
+        (and (not escaped) (= c entry-char))
+          (let [nested-form (read-entry settings- reader c)
+                [body-accum str-accum]
                   (if (identical? nested-form reader)
-                    [text-accum str-accum]
+                    [body-accum str-accum]
                     (dump-nested-form
-                      text-accum str-accum nested-form (:leading-ws state)))]
-            (recur text-accum str-accum
+                      body-accum str-accum nested-form (:leading-ws state)))]
+            (recur body-accum str-accum
               (assoc state :leading-ws false)))
 
 
 
         ; unexpected EOF
         (nil? c)
-          (reader-error reader "Unexpected EOF while in text reading mode")
+          (reader-error reader "Unexpected EOF while reading a body part")
 
         ; newline encountered: dump accumulator,
         ; turn the leading whitespace mode on
         (= c \newline)
-          (let [text-accum
-                 (-> text-accum
+          (let [body-accum
+                 (-> body-accum
                    (dump-string str-accum)
                    append-newline)]
-            (recur text-accum [] (assoc state :leading-ws true
+            (recur body-accum [] (assoc state :leading-ws true
                                               :here-str-pos 0)))
 
         ; in leading whitespace mode, whitespace character encountered
         (and (whitespace? c) (:leading-ws state))
-          (recur text-accum (conj str-accum c) (assoc state :leading-ws true
+          (recur body-accum (conj str-accum c) (assoc state :leading-ws true
                                                             :here-str-pos 0))
         (:leading-ws state)
-          (recur (dump-leading-ws text-accum str-accum) [c]
+          (recur (dump-leading-ws body-accum str-accum) [c]
             (assoc state :leading-ws false :here-str-pos 0))
 
         ; reading characters
-        :else (recur text-accum (conj str-accum c)
+        :else (recur body-accum (conj str-accum c)
           (assoc state :here-str-pos 0)))))))
 
-(defn scribble-text-block-reader
-  [reader here-str]
+(defn- read-body-part
+  [^Settings settings- reader here-str]
   ; FIXME: check that here-str does not contain verbatim start/end chars,
-  ; scribble char, or text start/end chars
+  ; entry char, or body start/end chars
   (let [[_ c] (reader-methods/reader-position reader)
         column (if (nil? c) 0 c)
-        text-accum (scribble-text-reader reader here-str)
-        text-form (text-postprocess text-accum column)]
-    text-form))
+        body-accum (read-body settings- reader here-str)
+        body-part (text-postprocess body-accum column)]
+    body-part))
 
-(defn read-until
+(defn- read-until
   [reader stop-condition?]
   (loop [chars []]
     (let [c (reader-methods/read-1 reader)]
@@ -247,49 +199,55 @@
             (clojure.string/join chars))
         :else (recur (conj chars c))))))
 
-(defn scribble-form-reader
-  [reader]
-  (loop [forms-read []
-         ; We want to make a difference between @foo[]
-         ; (reads as '(foo)) and @foo (reads as 'foo).
-         ; This flag will be set to `true` when
-         ; either [] or {} block is encountered.
-         forms-present false]
-    (let [c (reader-methods/read-1 reader)]
-      (cond
-        (and (= c scribble-verbatim-start)
-             (= (reader-methods/peek reader)
-             scribble-text-start))
-          (do
-            (reader-methods/read-1 reader)
+(defn- read-parts
+  [^Settings settings- reader]
+  (let [body-start-char (.body-start-char settings-)
+        datum-start-char (.datum-start-char settings-)
+        datum-end-char (.datum-end-char settings-)
+        escape-start-char (.escape-start-char settings-)]
+    (loop [forms-read []
+           ; We want to make the difference between @foo[]
+           ; (reads as '(foo)) and @foo (reads as 'foo).
+           ; This flag will be set to `true` when
+           ; either datum or body part is encountered.
+           forms-present false]
+      (let [c (reader-methods/read-1 reader)]
+        (cond
+          (and (= c escape-start-char)
+               (= (reader-methods/peek reader)
+               body-start-char))
+            (do
+              (reader-methods/read-1 reader)
+              (recur
+                (conj forms-read (read-body-part settings- reader ""))
+                true))
+          (= c escape-start-char)
+            (let [s (read-until reader #(= % body-start-char))
+                  _ (reader-methods/read-1 reader)
+                  body-part (read-body-part settings- reader s)]
+              (recur
+                (conj forms-read body-part)
+                true))
+          (= c body-start-char)
             (recur
-              (conj forms-read (scribble-text-block-reader reader ""))
-              true))
-        (= c scribble-verbatim-start)
-          (let [s (read-until reader #(= % scribble-text-start))
-                _ (reader-methods/read-1 reader)
-                verbatim-form (scribble-text-block-reader reader s)]
-            (recur (conj forms-read verbatim-form) true))
-        (= c scribble-text-start)
-          (recur
-            (conj forms-read (scribble-text-block-reader reader nil))
-            true)
-        (= c scribble-normal-start)
-          (let [forms (reader-methods/read-delimited-list
-                         scribble-normal-end reader)]
-            (recur (vec (concat forms-read forms)) true))
-        (nil? c)
-          (if forms-present
-            (list* forms-read)
-            reader)
-        :else
-          (do
-            (reader-methods/unread reader c)
+              (conj forms-read (read-body-part settings- reader nil))
+              true)
+          (= c datum-start-char)
+            (let [forms (reader-methods/read-delimited-list
+                           datum-end-char reader)]
+              (recur (vec (concat forms-read forms)) true))
+          (nil? c)
             (if forms-present
               (list* forms-read)
-              reader))))))
+              reader)
+          :else
+            (do
+              (reader-methods/unread reader c)
+              (if forms-present
+                (list* forms-read)
+                reader)))))))
 
-(defn skip-to-newline
+(defn- skip-to-newline
   "Reads from `reader` until `\\newline` or `EOF` is encountered
   (the final `\\newline` is not consumed).
   Returns `nil`."
@@ -301,7 +259,7 @@
         (= \newline c) (do (reader-methods/unread reader c) nil)
         :else (recur)))))
 
-(defn skip-to-meaningful-char
+(defn- skip-to-meaningful-char
   "Reads from `reader` until `\\newline` is encountered
   and then until the first non-whitespace character is encountered
   (the final character is not consumed), or until `EOF` is encountered.
@@ -316,30 +274,36 @@
         (= \newline c) (recur true)
         :else (recur newline-encountered)))))
 
-(defn try-recognize-symbol
+(defn- try-recognize-symbol
   [reader token]
   (if-let [sym (recognize-symbol token)]
     (unwrap-symbol sym)
     (reader-error reader "Invalid symbol: " token)))
 
-(defn read-symbol
-  [reader]
-  (try-recognize-symbol reader (read-until reader symbol-end?)))
+(defn- read-symbol
+  [^Settings settings- reader]
+  (try-recognize-symbol reader (read-until reader (.symbol-end? settings-))))
 
-(defn scribble-entry-reader
+(defn read-entry
   "The entry point of the reader macro."
-  [reader _]
-  (let [c (reader-methods/read-1 reader)]
+  [^Settings settings- reader _]
+  (let [body-start-char (.body-start-char settings-)
+        datum-start-char (.datum-start-char settings-)
+        escape-start-char (.escape-start-char settings-)
+        escape-end-char (.escape-end-char settings-)
+        comment-char (.comment-char settings-)
+        c (reader-methods/read-1 reader)]
     (cond
-      (or (= c scribble-text-start) (= c scribble-normal-start))
+      (or (= c body-start-char)
+          (= c datum-start-char))
         (do
           (reader-methods/unread reader c)
-          (scribble-form-reader reader))
-      (= c scribble-comment)
+          (read-parts settings- reader))
+      (= c comment-char)
         (let [next-c (reader-methods/peek reader)]
           (condp = next-c
-            scribble-comment (skip-to-meaningful-char reader)
-            scribble-text-start (scribble-form-reader reader)
+            comment-char (skip-to-meaningful-char reader)
+            body-start-char (read-parts settings- reader)
             (skip-to-newline reader))
           ; By convention, if the reader function has read nothing,
           ; it returns the reader.
@@ -350,24 +314,24 @@
       (nil? c)
         (reader-error reader
           "Unexpected EOF at the start of a Scribble form")
-      (= c scribble-verbatim-start)
+      (= c escape-start-char)
         (let [next-c (reader-methods/peek reader)]
-          (if (= next-c scribble-verbatim-start)
-            (scribble-form-reader reader)
+          (if (= next-c escape-start-char)
+            (read-parts settings- reader)
             (mark-for-splice
               (reader-methods/read-delimited-list
-                scribble-verbatim-end reader))))
+                escape-end-char reader))))
       :else
         (do
           (reader-methods/unread reader c)
-          (let [command (if (symbol-start? c)
+          (let [command (if (clojure-symbol-start? c)
                           ; reading a symbol by ourselves,
                           ; because we need to catch '|', which is tecnhically
                           ; allowed in Clojure symbols, and will be consumed by
                           ; `read-next`.
-                          (read-symbol reader)
+                          (read-symbol settings- reader)
                           (reader-methods/read-next reader))
-                forms (scribble-form-reader reader)]
+                forms (read-parts settings- reader)]
             (cond
               (identical? reader forms) command
               (empty? forms) (list command)
