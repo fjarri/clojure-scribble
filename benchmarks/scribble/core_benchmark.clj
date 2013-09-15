@@ -8,4 +8,4 @@
 (defcase reader-bench :scribble-doc-load
   []
   (with-scribble
-    (load-file (.getPath (io/resource "doc.scrbl")))))
+    (load-file (.getPath (io/resource "doc.txt")))))
