@@ -1,4 +1,5 @@
 (ns scribble.core-test
+  (:import [java.lang RuntimeException])
   (:use [midje.sweet])
   (:require [clojure.test :refer :all]
             [scribble.core :refer :all]))
@@ -9,6 +10,11 @@
 ; So in order for the whitespace truncation to work properly,
 ; we need to use the main reader.
 (use-scribble)
+
+
+; For exception tests, and cases where EOF at a certain place is needed.
+(defn read-scribble [s]
+  (with-scribble (read-string s)))
 
 
 ; Tests for the reader macro
@@ -399,6 +405,57 @@
 
 ))
 
+
+; These tests were added specifically to cover all the branches.
+; Contain various corner cases.
+(deftest test-reader-coverage (facts "about the coverage"
+
+  (fact "EOF right after a scribble form"
+    (read-scribble "@foo{bar}")
+    =>
+    '(foo ["bar"]))
+
+  (fact "EOF right after a scribble form with an empty command and body parts"
+    (read-scribble "@foo")
+    =>
+    'foo)
+
+  ; Same behavior as (read-string "; normal comment")
+  (fact "EOF right after a non-consuming comment"
+    (read-scribble "@; one two three")
+    =>
+    (throws RuntimeException "EOF while reading"))
+
+  (fact "EOF right after a consuming comment"
+    (read-scribble "@;; one two three")
+    =>
+    (throws RuntimeException "EOF while reading"))
+
+  (fact "almost finished beginning here-string (except for the `{`)"
+   '@foo|--{|--abc}--|
+    =>
+   '(foo ["|--abc"]))
+
+  (fact "almost finished ending here-string (except for the `}`)"
+   '@foo|--{abc}--}--|
+    =>
+   '(foo ["abc}--"]))
+
+  (fact "comment inside an escaped text block"
+   '@foo|{abc |@; comment
+          cba}|
+    =>
+   '(foo ["abc" "\n" "cba"]))
+
+  (fact "final leading whitespace in an escaped text block"
+   '@foo|{abc
+    }|
+    =>
+   '(foo ["abc"]))
+
+))
+
+
 (deftest test-symbol-resolution (facts "about the symbol resolution"
 
   (fact "nil is not ignored"
@@ -406,10 +463,12 @@
     =>
    '(foo ["aaa " nil " bbb"]))
 
+  ; Add @NaN @Infinity @+Infinity @-Infinity to this test
+  ; when CLJ-1074 gets merged.
   (fact "literals are resolved"
-   '@foo{aaa @false bbb @true ccc}
+   '@foo{aaa @false bbb @true ccc @/}
     =>
-   '(foo ["aaa " false " bbb " true " ccc"]))
+   '(foo ["aaa " false " bbb " true " ccc " /]))
 
   (fact "known symbols are resolved"
     (let [formatter (fn [fmt]
@@ -424,9 +483,6 @@
 
 ))
 
-
-(defn read-scribble [s]
-  (with-scribble (read-string s)))
 
 (deftest test-reader-exceptions (facts "about the reader exceptions"
 
@@ -444,5 +500,15 @@
     (read-scribble "(def foo @")
     =>
     (throws "Unexpected EOF at the start of a Scribble form"))
+
+  (fact "an exception is thrown if the symbol is invalid"
+    (read-scribble "@foo::{abc}")
+    =>
+    (throws "Invalid symbol: foo::"))
+
+  (fact "unexpected EOF in text mode"
+    (read-scribble "@foo{abc")
+    =>
+    (throws "Unexpected EOF while in text reading mode"))
 
 ))

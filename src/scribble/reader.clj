@@ -22,7 +22,7 @@
 
 (def scribble-symbol-start
   ; according to http://clojure.org/reader (as of 1.5.1)
-  #{\* \+ \! \- \_ \?})
+  #{\* \+ \! \- \_ \? \/})
 
 (defn symbol-start?
   [^Character c]
@@ -148,16 +148,16 @@
               (assoc state :here-str-pos 0)))
 
         (and escaped
-            (pos? (:here-str-pos state))
-            (< (:here-str-pos state) here-marker-len)
-            (= c (nth here-start (:here-str-pos state))))
+             (pos? (:here-str-pos state))
+             (< (:here-str-pos state) here-marker-len)
+             (= c (nth here-start (:here-str-pos state))))
           (recur text-accum (conj str-accum c)
             (update-in state [:here-str-pos] inc))
 
         (and escaped
-            (neg? (:here-str-pos state))
-            (< (- (:here-str-pos state)) here-marker-len)
-            (= c (nth here-end (- (:here-str-pos state)))))
+             (neg? (:here-str-pos state))
+             (< (- (:here-str-pos state)) here-marker-len)
+             (= c (nth here-end (- (:here-str-pos state)))))
           (recur text-accum (conj str-accum c)
             (update-in state [:here-str-pos] dec))
 
@@ -310,6 +310,7 @@
   (loop [newline-encountered false]
     (let [c (reader-methods/read-1 reader)]
       (cond
+        (nil? c) nil
         (and newline-encountered (not (whitespace? c)))
           (do (reader-methods/unread reader c) nil)
         (= \newline c) (recur true)

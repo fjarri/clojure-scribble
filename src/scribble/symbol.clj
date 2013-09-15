@@ -26,8 +26,11 @@
     "true" (WrappedSymbol. true)
     "false" (WrappedSymbol. false)
     "/" (WrappedSymbol. '/)
-    "NaN" (WrappedSymbol. Double/NaN)
-    "-Infinity" (WrappedSymbol. Double/NEGATIVE_INFINITY)
-    ("Infinity" "+Infinity") (WrappedSymbol. Double/POSITIVE_INFINITY)
+
+    ; CLJ-1074 is not merged yet, so these literals do not work
+    ;"NaN" (WrappedSymbol. Double/NaN)
+    ;"-Infinity" (WrappedSymbol. Double/NEGATIVE_INFINITY)
+    ;("Infinity" "+Infinity") (WrappedSymbol. Double/POSITIVE_INFINITY)
+
     (when-let [p (parse-symbol token)]
       (WrappedSymbol. (symbol (p 0) (p 1))))))
