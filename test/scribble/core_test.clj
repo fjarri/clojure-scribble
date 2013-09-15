@@ -2,19 +2,24 @@
   (:import [java.lang RuntimeException])
   (:use [midje.sweet])
   (:require [clojure.test :refer :all]
-            [scribble.core :refer :all]))
+            [scribble.core :refer :all]
+            [scribble.settings :refer :all]))
 
+
+; Tests were taken from the orignal Scribble documentation,
+; so we use its symbols.
+(def scribble-settings (settings \@ \{ \} \[ \] \| \| \;))
 
 ; Unfortunately, the reader that reads from strings does not have
 ; line/column metadata.
 ; So in order for the whitespace truncation to work properly,
 ; we need to use the main reader.
-(use-scribble)
+(use-scribble scribble-settings)
 
 
 ; For exception tests, and cases where EOF at a certain place is needed.
 (defn read-scribble [s]
-  (with-scribble (read-string s)))
+  (with-scribble scribble-settings (read-string s)))
 
 
 ; Tests for the reader macro
