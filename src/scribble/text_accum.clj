@@ -68,7 +68,9 @@
 
 (defn dump-leading-ws
   [text-accum str-accum]
-  (text-accum-append text-accum (make-token (str-accum-finalize str-accum) :leading-ws true)))
+  (text-accum-append
+    text-accum
+    (make-token (str-accum-finalize str-accum) :leading-ws true)))
 
 (defn- dump-string-verbatim
   [text-accum str-accum]
@@ -78,8 +80,9 @@
   "Joins `str-accum` in a string and attaches it to the end of
   `text-accum`, returning the resulting vector.
   If `str-accum` is empty, `vec-accum` is returned unchanged.
-  If `separate-trailing-ws` is `true`, the string constructed from `str-accum` is split into
-  the main part and the trailing whitespace part before the attachment to `vec-accum`."
+  If `separate-trailing-ws` is `true`, the string constructed from `str-accum`
+  is split into the main part and the trailing whitespace part
+  before the attachment to `vec-accum`."
   [text-accum str-accum]
   (let [[s trailing-ws] (str-accum-finalize-trimr str-accum)]
     (-> text-accum
@@ -91,11 +94,13 @@
   (with-meta l {::splice true}))
 
 (defn dump-nested-form
-  "Need to return `str-accum` because in case of the comment we do not want to break the string."
+  "Need to return `str-accum` because in case of the comment
+  we do not want to break the string."
   [text-accum str-accum nested-form leading-ws]
   (cond
     leading-ws
-      (dump-nested-form (dump-leading-ws text-accum str-accum) [] nested-form false)
+      (dump-nested-form
+        (dump-leading-ws text-accum str-accum) [] nested-form false)
 
     ; it was a string: special case, append it to the accumulator
     (string? nested-form)

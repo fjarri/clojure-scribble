@@ -350,7 +350,7 @@
     =>
    '(foo ["foo" bar.]))
 
-  (fact "text in a standalone expression is not merged with the surrounding text"
+  (fact "text in an escaped expression is not merged with the surrounding text"
    '@foo{x@|"y"|z}
     =>
    '(foo ["x" "y" "z"]))

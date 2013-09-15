@@ -3,10 +3,6 @@
 ;; In order to reduce the amount of spurious whitespace of a text block,
 ;; Scribble truncates leading whitespace and discards
 ;; trailing whitespace and some newlines, based on certain conditions.
-;;
-;; Theoretically, this can be done during reading, but performing it separately
-;; makes the code more readable.
-
 (ns scribble.postprocess
   (:require [scribble.text-accum :refer :all])
   (:import [scribble.text_accum TextToken]))
@@ -26,8 +22,8 @@
   (every? whitespace-or-newline? token))
 
 (defn- trim-leading-newline
-  "Trim (a possible whitespace string and) a newline string from the vector `v`,
-  if they are present."
+  "Trim (a possible whitespace string and) a newline string
+  from the vector `v`, if they are present."
   [v]
   (if (empty? v)
     v
@@ -43,8 +39,8 @@
             :else v))))))
 
 (defn- trim-trailing-newline
-  "Trim a newline string (and a possible whitespace string) from the vector `v`,
-  if they are present."
+  "Trim a newline string (and a possible whitespace string)
+  from the vector `v`, if they are present."
   [v]
   (if (empty? v)
     v
@@ -83,7 +79,8 @@
           (and (.leading-ws? elem) (not (.newline? next-elem))))
         ws-pairs (filter filter-pred
           (map (fn [a b] [a b]) ws-candidates next-elems))
-        map-pred (fn [[^TextToken elem ^TextToken next-elem]] (count (.contents elem)))
+        map-pred
+          (fn [[^TextToken elem _]] (count (.contents elem)))
         ws-lengths (map map-pred ws-pairs)]
     (if (empty? ws-lengths)
       0
@@ -121,7 +118,9 @@
           n-prev (dec n-last)
           t-last ^TextToken (nth v n-last)
           t-prev ^TextToken (nth v n-prev)]
-      (if (and (.trailing-ws? t-last) (string? (.contents t-prev)) (not (.newline? t-prev)))
+      (if (and (.trailing-ws? t-last)
+               (string? (.contents t-prev))
+               (not (.newline? t-prev)))
         (conj
           (subvec v 0 n-prev)
           (make-token (str (.contents t-prev) (.contents t-last))))
@@ -130,20 +129,22 @@
 (defn- text-trim-whitespace
   "Removes excessive whitespace according to the following rules:
 
-  - If the vector starts with a `\\newline`, the size of the following whitespace
-    is used instead of `starting-indent`.
+  - If the vector starts with a `\\newline`, the size of the
+    following whitespace is used instead of `starting-indent`.
   - If the vector only contains `\\newline`s and whitespace,
     everything except `\\newline`s is discarded.
   - Otherwise if it starts with (maybe some whitespace and) `\\newline`,
     or ends with `\\newline` (and maybe some whitespace), these are discarded.
   - Any whitespace right before a `\\newline` is discarded.
-  - Any whitespace after a `\\newline` with more than `starting-indent` characters
-    is truncated by this amount, otherwise it is discarded completely."
+  - Any whitespace after a `\\newline` with more than `starting-indent`
+    characters is truncated by this amount,
+    otherwise it is discarded completely."
   [text-accum starting-indent]
     (let [starting-indent (get-starting-indent text-accum starting-indent)]
       (cond
         (empty? text-accum) text-accum
-        (whitespace-only? text-accum) (filterv (fn [^TextToken token] (.newline? token)) text-accum)
+        (whitespace-only? text-accum)
+          (filterv (fn [^TextToken token] (.newline? token)) text-accum)
         :else (-> text-accum
           (trim-whitespace starting-indent)
           trim-leading-newline
