@@ -1,4 +1,4 @@
-(ns scribble.core-test
+(ns scribble.reader-test
   (:import [java.lang RuntimeException])
   (:use [midje.sweet])
   (:require [clojure.test :refer :all]
