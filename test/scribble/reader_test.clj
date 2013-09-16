@@ -8,7 +8,7 @@
 
 ; Tests were taken from the orignal Scribble documentation,
 ; so we use its symbols.
-(def scribble-settings (settings \@ \{ \} \[ \] \| \| \;))
+(def scribble-settings (make-settings \@ \{ \} \[ \] \| \| \;))
 
 ; Unfortunately, the reader that reads from strings does not have
 ; line/column metadata.

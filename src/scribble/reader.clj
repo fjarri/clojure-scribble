@@ -26,15 +26,15 @@
   The strings are separated as
   [leading whitespace, contents, trailing whitespace, newline]
   (for the ease of further processing)."
-  [^Settings settings- reader here-str]
+  [^Settings settings reader here-str]
   (let [[here-start here-end] (here-markers here-str)
         here-marker-len (count here-start)
         escaped (not (nil? here-str))
-        entry-char (.entry-char settings-)
-        body-start-char (.body-start-char settings-)
-        body-end-char (.body-end-char settings-)
-        escape-start-char (.escape-start-char settings-)
-        escape-end-char (.escape-end-char settings-)]
+        entry-char (.entry-char settings)
+        body-start-char (.body-start-char settings)
+        body-end-char (.body-end-char settings)
+        escape-start-char (.escape-start-char settings)
+        escape-end-char (.escape-end-char settings)]
   (loop [body-accum []
          str-accum (make-str-accum)
          ; FIXME: using a custom type will be faster
@@ -84,7 +84,7 @@
         (and escaped
              (= c entry-char)
              (= (:here-str-pos state) here-marker-len))
-          (let [nested-form (read-entry settings- reader c)
+          (let [nested-form (read-entry settings reader c)
                 str-accum (str-accum-pop str-accum here-marker-len)
                 [body-accum str-accum]
                   (if (identical? nested-form reader)
@@ -135,7 +135,7 @@
               (update-in state [:brace-level] dec)))
 
         (and (not escaped) (= c entry-char))
-          (let [nested-form (read-entry settings- reader c)
+          (let [nested-form (read-entry settings reader c)
                 [body-accum str-accum]
                   (if (identical? nested-form reader)
                     [body-accum str-accum]
@@ -177,12 +177,12 @@
           (assoc state :here-str-pos 0)))))))
 
 (defn- read-body-part
-  [^Settings settings- reader here-str]
+  [^Settings settings reader here-str]
   ; FIXME: check that here-str does not contain escape-start/end chars,
   ; entry char, or body-start/end chars
   (let [[_ c] (reader-methods/reader-position reader)
         column (if (nil? c) 0 c)
-        body-accum (read-body settings- reader here-str)
+        body-accum (read-body settings reader here-str)
         body-part (text-postprocess body-accum column)]
     body-part))
 
@@ -199,11 +199,11 @@
         :else (recur (str-accum-push str-accum c))))))
 
 (defn- read-parts
-  [^Settings settings- reader]
-  (let [body-start-char (.body-start-char settings-)
-        datum-start-char (.datum-start-char settings-)
-        datum-end-char (.datum-end-char settings-)
-        escape-start-char (.escape-start-char settings-)]
+  [^Settings settings reader]
+  (let [body-start-char (.body-start-char settings)
+        datum-start-char (.datum-start-char settings)
+        datum-end-char (.datum-end-char settings)
+        escape-start-char (.escape-start-char settings)]
     (loop [forms-read []
            ; We want to make a difference between `@foo[]`
            ; (reads as `'(foo)`) and `@foo` (reads as `'foo`).
@@ -218,18 +218,18 @@
             (do
               (reader-methods/read-1 reader)
               (recur
-                (conj forms-read (read-body-part settings- reader ""))
+                (conj forms-read (read-body-part settings reader ""))
                 true))
           (= c escape-start-char)
             (let [s (read-until reader #(= % body-start-char))
                   _ (reader-methods/read-1 reader)
-                  body-part (read-body-part settings- reader s)]
+                  body-part (read-body-part settings reader s)]
               (recur
                 (conj forms-read body-part)
                 true))
           (= c body-start-char)
             (recur
-              (conj forms-read (read-body-part settings- reader nil))
+              (conj forms-read (read-body-part settings reader nil))
               true)
           (= c datum-start-char)
             (let [forms (reader-methods/read-delimited-list
@@ -280,29 +280,29 @@
     (reader-error reader "Invalid symbol: " token)))
 
 (defn- read-symbol
-  [^Settings settings- reader]
-  (try-recognize-symbol reader (read-until reader (.symbol-end? settings-))))
+  [^Settings settings reader]
+  (try-recognize-symbol reader (read-until reader (.symbol-end? settings))))
 
 (defn read-entry
   "The entry point of the reader macro."
-  [^Settings settings- reader _]
-  (let [body-start-char (.body-start-char settings-)
-        datum-start-char (.datum-start-char settings-)
-        escape-start-char (.escape-start-char settings-)
-        escape-end-char (.escape-end-char settings-)
-        comment-char (.comment-char settings-)
+  [^Settings settings reader _]
+  (let [body-start-char (.body-start-char settings)
+        datum-start-char (.datum-start-char settings)
+        escape-start-char (.escape-start-char settings)
+        escape-end-char (.escape-end-char settings)
+        comment-char (.comment-char settings)
         c (reader-methods/read-1 reader)]
     (cond
       (or (= c body-start-char)
           (= c datum-start-char))
         (do
           (reader-methods/unread reader c)
-          (read-parts settings- reader))
+          (read-parts settings reader))
       (= c comment-char)
         (let [next-c (reader-methods/peek reader)]
           (condp = next-c
             comment-char (skip-to-meaningful-char reader)
-            body-start-char (read-parts settings- reader)
+            body-start-char (read-parts settings reader)
             (skip-to-newline reader))
           ; By convention, if the reader function has read nothing,
           ; it returns the reader.
@@ -316,7 +316,7 @@
       (= c escape-start-char)
         (let [next-c (reader-methods/peek reader)]
           (if (= next-c escape-start-char)
-            (read-parts settings- reader)
+            (read-parts settings reader)
             (mark-for-splice
               (reader-methods/read-delimited-list
                 escape-end-char reader))))
@@ -328,9 +328,9 @@
                           ; because we need to catch '|', which is tecnhically
                           ; allowed in Clojure symbols, and will be consumed by
                           ; `read-next`.
-                          (read-symbol settings- reader)
+                          (read-symbol settings reader)
                           (reader-methods/read-next reader))
-                forms (read-parts settings- reader)]
+                forms (read-parts settings reader)]
             (cond
               (identical? reader forms) command
               (empty? forms) (list command)

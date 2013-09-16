@@ -24,7 +24,7 @@
   ^Character comment-char
   symbol-end?])
 
-(defn settings
+(defn make-settings
   [entry-char
    body-start-char
    body-end-char
@@ -55,7 +55,7 @@
                comment-char
                symbol-end?)))
 
-(def default-settings (settings \@ \{ \} \[ \] \| \| \;))
+(def default-settings (make-settings \@ \{ \} \[ \] \| \| \;))
 
 (defn entry-char
   [^Settings settings-]

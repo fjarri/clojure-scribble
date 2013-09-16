@@ -50,10 +50,10 @@
 (defmacro with-scribble-settings
   "Temporarily enables the Scribble reader macro
   with custom settings."
-  [settings- & exprs]
+  [settings & exprs]
  `(with-reader-macro
-    (entry-char ~settings-)
-    (partial read-entry ~settings-)
+    (entry-char ~settings)
+    (partial read-entry ~settings)
     (do ~@exprs)))
 
 (defmacro with-scribble
