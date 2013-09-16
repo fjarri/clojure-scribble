@@ -31,20 +31,6 @@
   [str-accum]
   (clojure.string/join str-accum))
 
-(defn- str-accum-finalize-trimr
-  "Renders the contents of the accumulator into a string,
-  and splits it into two strings containing the trailing whitespace
-  and the remaining part.
-  Returns a vector `[main-part trailing-ws]`."
-  [str-accum]
-  (let [s (str-accum-finalize str-accum)
-        trimmed-s (clojure.string/trimr s)
-        count-full (count s)
-        count-trimmed (count trimmed-s)]
-    (if (= count-full count-trimmed)
-      [s ""]
-      [trimmed-s (subs s count-trimmed)])))
-
 
 (deftype TextToken [
   contents
@@ -108,6 +94,18 @@
   [text-accum str-accum]
   (append-string text-accum (str-accum-finalize str-accum)))
 
+(defn- split-trimr
+  "Splits the string into two strings containing the trailing whitespace
+  and the remaining part.
+  Returns a vector `[main-part trailing-ws]`."
+  [s]
+  (let [trimmed-s (clojure.string/trimr s)
+        count-full (count s)
+        count-trimmed (count trimmed-s)]
+    (if (= count-full count-trimmed)
+      [s ""]
+      [trimmed-s (subs s count-trimmed)])))
+
 (defn dump-string
   "Joins `str-accum` in a string and attaches it to the end of
   `text-accum`, returning the resulting vector.
@@ -116,9 +114,9 @@
   is split into the main part and the trailing whitespace part
   before the attachment to `vec-accum`."
   [text-accum str-accum]
-  (let [[s trailing-ws] (str-accum-finalize-trimr str-accum)]
+  (let [[main-part trailing-ws] (split-trimr (str-accum-finalize str-accum))]
     (-> text-accum
-      (append-string s)
+      (append-string main-part)
       (append-trailing-ws trailing-ws))))
 
 (defn mark-for-splice
