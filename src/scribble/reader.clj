@@ -1,7 +1,7 @@
 (ns scribble.reader
   (:use [clojure.tools.reader.reader-types :only [reader-error]])
   (:require [chiara.reader.utils :as reader-methods]
-            [scribble.text-accum :refer :all]
+            [scribble.types :refer :all]
             [scribble.postprocess :refer :all]
             [scribble.symbol :refer :all]
             [scribble.settings :refer :all])

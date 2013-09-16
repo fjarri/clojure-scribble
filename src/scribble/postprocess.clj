@@ -4,8 +4,8 @@
 ;; Scribble truncates leading whitespace and discards
 ;; trailing whitespace and some newlines, based on certain conditions.
 (ns scribble.postprocess
-  (:require [scribble.text-accum :refer :all])
-  (:import [scribble.text_accum TextToken]))
+  (:require [scribble.types :refer :all])
+  (:import [scribble.types TextToken]))
 
 
 (defn- whitespace-or-newline?
