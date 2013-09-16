@@ -1,10 +1,42 @@
+;; Contains methods for the string accumulator, the body part accumulator,
+;; and the body part token.
+;; This way the underlying data structures can be changed easily if needed,
+;; and the complexity requirements can be assessed.
 (ns scribble.types)
 
+;; # String accumulator methods
+;;
+;; String accumulator is used when the reader reads and collects characters
+;; from the stream.
 
-(defn- str-accum-finalize [str-accum]
+(defn make-str-accum
+  "Creates an empty string accumulator."
+  []
+  [])
+
+(defn str-accum-pop
+  "Removes the last `n` characters from `str-accum`."
+  [str-accum n]
+  (if (zero? n)
+    str-accum
+    (subvec str-accum 0 (- (count str-accum) n))))
+
+(defn str-accum-push
+  "Adds a character `c` to the end of `str-accum`."
+  [str-accum c]
+  (conj str-accum c))
+
+(defn str-accum-finalize
+  "Returns a string representing the contents of the accumulator."
+  [str-accum]
   (clojure.string/join str-accum))
 
-(defn- str-accum-finalize-trimr [str-accum]
+(defn- str-accum-finalize-trimr
+  "Renders the contents of the accumulator into a string,
+  and splits it into two strings containing the trailing whitespace
+  and the remaining part.
+  Returns a vector `[main-part trailing-ws]`."
+  [str-accum]
   (let [s (str-accum-finalize str-accum)
         trimmed-s (clojure.string/trimr s)
         count-full (count s)

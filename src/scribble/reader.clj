@@ -18,11 +18,6 @@
         \space
         (clojure.string/join (inverse-vec (vec here-str))))]))
 
-(defn- str-pop
-  [v n]
-  (if (zero? n)
-    v
-    (subvec v 0 (- (count v) n))))
 
 (declare read-entry)
 
@@ -41,7 +36,7 @@
         escape-start-char (.escape-start-char settings-)
         escape-end-char (.escape-end-char settings-)]
   (loop [body-accum []
-         str-accum []
+         str-accum (make-str-accum)
          ; FIXME: using a custom type will be faster
          state {:leading-ws true
                 :brace-level 0
@@ -53,8 +48,8 @@
              (= c escape-end-char)
              (= (- (:here-str-pos state)) here-marker-len))
           (if (zero? (:brace-level state))
-            (dump-string body-accum (str-pop str-accum here-marker-len))
-            (recur body-accum (conj str-accum c)
+            (dump-string body-accum (str-accum-pop str-accum here-marker-len))
+            (recur body-accum (str-accum-push str-accum c)
               (assoc state
                 :brace-level (dec (:brace-level state))
                 :here-str-pos 0)))
@@ -63,7 +58,7 @@
           (let [[body-accum str-accum]
                   (if (:leading-ws state)
                     [(dump-leading-ws body-accum str-accum) [c]]
-                    [body-accum (conj str-accum c)])]
+                    [body-accum (str-accum-push str-accum c)])]
               (recur body-accum str-accum
                 (assoc state
                   :here-str-pos 1
@@ -73,7 +68,7 @@
           (let [[body-accum str-accum]
                   (if (:leading-ws state)
                     [(dump-leading-ws body-accum str-accum) [c]]
-                    [body-accum (conj str-accum c)])]
+                    [body-accum (str-accum-push str-accum c)])]
               (recur body-accum str-accum
                 (assoc state
                   :here-str-pos -1
@@ -82,7 +77,7 @@
         (and escaped
              (= c body-start-char)
              (= (:here-str-pos state) here-marker-len))
-          (recur body-accum (conj str-accum c)
+          (recur body-accum (str-accum-push str-accum c)
             (assoc state :here-str-pos 0
                          :brace-level (inc (:brace-level state))))
 
@@ -90,7 +85,7 @@
              (= c entry-char)
              (= (:here-str-pos state) here-marker-len))
           (let [nested-form (read-entry settings- reader c)
-                str-accum (str-pop str-accum here-marker-len)
+                str-accum (str-accum-pop str-accum here-marker-len)
                 [body-accum str-accum]
                   (if (identical? nested-form reader)
                     [body-accum str-accum]
@@ -103,14 +98,14 @@
              (pos? (:here-str-pos state))
              (< (:here-str-pos state) here-marker-len)
              (= c (nth here-start (:here-str-pos state))))
-          (recur body-accum (conj str-accum c)
+          (recur body-accum (str-accum-push str-accum c)
             (update-in state [:here-str-pos] inc))
 
         (and escaped
              (neg? (:here-str-pos state))
              (< (- (:here-str-pos state)) here-marker-len)
              (= c (nth here-end (- (:here-str-pos state)))))
-          (recur body-accum (conj str-accum c)
+          (recur body-accum (str-accum-push str-accum c)
             (update-in state [:here-str-pos] dec))
 
 
@@ -122,7 +117,7 @@
                          :brace-level (inc (:brace-level state))))
 
         (and (not escaped) (= c body-start-char))
-          (recur body-accum (conj str-accum c)
+          (recur body-accum (str-accum-push str-accum c)
             (update-in state [:brace-level] inc))
 
         (and (not escaped)
@@ -136,7 +131,7 @@
             (recur (dump-leading-ws body-accum str-accum) [c]
               (assoc state :leading-ws false
                            :brace-level (dec (:brace-level state))))
-            (recur body-accum (conj str-accum c)
+            (recur body-accum (str-accum-push str-accum c)
               (update-in state [:brace-level] dec)))
 
         (and (not escaped) (= c entry-char))
@@ -162,19 +157,23 @@
                  (-> body-accum
                    (dump-string str-accum)
                    append-newline)]
-            (recur body-accum [] (assoc state :leading-ws true
-                                              :here-str-pos 0)))
+            (recur
+              body-accum
+              (make-str-accum)
+              (assoc state :leading-ws true :here-str-pos 0)))
 
         ; in leading whitespace mode, whitespace character encountered
         (and (whitespace? c) (:leading-ws state))
-          (recur body-accum (conj str-accum c) (assoc state :leading-ws true
-                                                            :here-str-pos 0))
+          (recur
+            body-accum
+            (str-accum-push str-accum c)
+            (assoc state :leading-ws true :here-str-pos 0))
         (:leading-ws state)
           (recur (dump-leading-ws body-accum str-accum) [c]
             (assoc state :leading-ws false :here-str-pos 0))
 
         ; reading characters
-        :else (recur body-accum (conj str-accum c)
+        :else (recur body-accum (str-accum-push str-accum c)
           (assoc state :here-str-pos 0)))))))
 
 (defn- read-body-part
@@ -189,15 +188,15 @@
 
 (defn- read-until
   [reader stop-condition?]
-  (loop [chars []]
+  (loop [str-accum (make-str-accum)]
     (let [c (reader-methods/read-1 reader)]
       (cond
-        (nil? c) (clojure.string/join chars)
+        (nil? c) (str-accum-finalize str-accum)
         (stop-condition? c)
           (do
             (reader-methods/unread reader c)
-            (clojure.string/join chars))
-        :else (recur (conj chars c))))))
+            (str-accum-finalize str-accum))
+        :else (recur (str-accum-push str-accum c))))))
 
 (defn- read-parts
   [^Settings settings- reader]
@@ -206,8 +205,8 @@
         datum-end-char (.datum-end-char settings-)
         escape-start-char (.escape-start-char settings-)]
     (loop [forms-read []
-           ; We want to make the difference between @foo[]
-           ; (reads as '(foo)) and @foo (reads as 'foo).
+           ; We want to make a difference between `@foo[]`
+           ; (reads as `'(foo)`) and `@foo` (reads as `'foo`).
            ; This flag will be set to `true` when
            ; either datum or body part is encountered.
            forms-present false]
