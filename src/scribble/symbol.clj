@@ -1,4 +1,4 @@
-;; This namespace contains some copy-paste of symbol-recognition code
+;; This namespace contains some copy-paste of the symbol-recognition code
 ;; from `clojure.tools.reader`.
 ;; Unfortunately, it is private and coupled to `reader`
 ;; (which makes it difficult to work with escaped symbols),
