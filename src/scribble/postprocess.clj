@@ -5,11 +5,11 @@
 ;; trailing whitespace and some newlines, based on certain conditions.
 (ns scribble.postprocess
   (:require [scribble.types :refer :all])
-  (:import [scribble.types TextToken]))
+  (:import [scribble.types BodyToken]))
 
 
 (defn- whitespace-or-newline?
-  [^TextToken token]
+  [^BodyToken token]
   (or
     (.newline? token)
     (.leading-ws? token)
@@ -18,7 +18,7 @@
 (defn- whitespace-only?
   "Returns `true` if the sequence `v` contains only `\\newline``s
   and strings of whitespace characters."
-  [^TextToken token]
+  [^BodyToken token]
   (every? whitespace-or-newline? token))
 
 (defn- trim-leading-newline
@@ -27,12 +27,12 @@
   [v]
   (if (empty? v)
     v
-    (let [^TextToken t-first (nth v 0)]
+    (let [^BodyToken t-first (nth v 0)]
       (if (= (count v) 1)
         (if (.newline? t-first)
           []
           v)
-        (let [^TextToken t-second (nth v 1)]
+        (let [^BodyToken t-second (nth v 1)]
           (cond
             (.newline? t-first) (subvec v 1)
             (and (.leading-ws? t-first) (.newline? t-second)) (subvec v 2)
@@ -45,23 +45,23 @@
   (if (empty? v)
     v
     (let [n-last (dec (count v))
-          ^TextToken t-last (nth v n-last)]
+          ^BodyToken t-last (nth v n-last)]
       (if (= (count v) 1)
         (if (.newline? t-last)
           []
           v)
         (let [n-prev (dec n-last)
-              ^TextToken t-prev (nth v n-prev)]
+              ^BodyToken t-prev (nth v n-prev)]
           (cond
             (.newline? t-last) (subvec v 0 n-last)
             (and (.leading-ws? t-last) (.newline? t-prev)) (subvec v 0 n-prev)
             :else v))))))
 
-(defn- trim-whitespace-pred [indent ^TextToken token]
+(defn- trim-whitespace-pred [indent ^BodyToken token]
   (when-not (.trailing-ws? token)
     (if (.leading-ws? token)
       (when (> (count (.contents token)) indent)
-        (map-contents #(subs % indent) token))
+        (make-body-token (subs (.contents token) indent) :leading-ws :true))
       token)))
 
 (defn- trim-whitespace [v indent]
@@ -75,12 +75,12 @@
   ; Out of those we select the smallest one.
   (let [ws-candidates (subvec v 0 (dec (count v)))
         next-elems (subvec v 1)
-        filter-pred (fn [[^TextToken elem ^TextToken next-elem]]
+        filter-pred (fn [[^BodyToken elem ^BodyToken next-elem]]
           (and (.leading-ws? elem) (not (.newline? next-elem))))
         ws-pairs (filter filter-pred
           (map (fn [a b] [a b]) ws-candidates next-elems))
         map-pred
-          (fn [[^TextToken elem _]] (count (.contents elem)))
+          (fn [[^BodyToken elem _]] (count (.contents elem)))
         ws-lengths (map map-pred ws-pairs)]
     (if (empty? ws-lengths)
       0
@@ -89,8 +89,8 @@
 (defn- get-starting-indent [v starting-indent]
   (if (< (count v) 2)
     starting-indent
-    (let [t0 ^TextToken (nth v 0)
-          t1 ^TextToken (nth v 1)]
+    (let [t0 ^BodyToken (nth v 0)
+          t1 ^BodyToken (nth v 1)]
       (if (or (.newline? t0) (and (.leading-ws? t0) (.newline? t1)))
         (find-starting-indent v)
         starting-indent))))
@@ -101,11 +101,11 @@
   [v]
   (if (< (count v) 2)
     v
-    (let [t0 ^TextToken (nth v 0)
-          t1 ^TextToken (nth v 1)]
+    (let [t0 ^BodyToken (nth v 0)
+          t1 ^BodyToken (nth v 1)]
       (if (and (.leading-ws? t0) (string? (.contents t1)) (not (.newline? t1)))
         ; FIXME: prepending is O(N). Need to use finger trees.
-        (into [(make-token (str (.contents t0) (.contents t1)))] (subvec v 2))
+        (into [(make-body-token (str (.contents t0) (.contents t1)))] (subvec v 2))
         v))))
 
 (defn- text-merge-ending-whitespace
@@ -116,14 +116,14 @@
     v
     (let [n-last (dec (count v))
           n-prev (dec n-last)
-          t-last ^TextToken (nth v n-last)
-          t-prev ^TextToken (nth v n-prev)]
+          t-last ^BodyToken (nth v n-last)
+          t-prev ^BodyToken (nth v n-prev)]
       (if (and (.trailing-ws? t-last)
                (string? (.contents t-prev))
                (not (.newline? t-prev)))
         (conj
           (subvec v 0 n-prev)
-          (make-token (str (.contents t-prev) (.contents t-last))))
+          (make-body-token (str (.contents t-prev) (.contents t-last))))
         v))))
 
 (defn- text-trim-whitespace
@@ -144,7 +144,7 @@
       (cond
         (empty? text-accum) text-accum
         (whitespace-only? text-accum)
-          (filterv (fn [^TextToken token] (.newline? token)) text-accum)
+          (filterv (fn [^BodyToken token] (.newline? token)) text-accum)
         :else (-> text-accum
           (trim-whitespace starting-indent)
           trim-leading-newline

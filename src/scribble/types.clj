@@ -4,6 +4,7 @@
 ;; and the complexity requirements can be assessed.
 (ns scribble.types)
 
+
 ;; # String accumulator methods
 ;;
 ;; String accumulator is used when the reader reads and collects characters
@@ -32,25 +33,32 @@
   (clojure.string/join str-accum))
 
 
-(deftype TextToken [
+;; # Body part token methods
+;;
+;; When the body part is read, it is organized into tokens
+;; containing strings or arbitrary forms, and some metadata,
+;; which is readily available at read time,
+;; but would require `O(n)` time to obtain during the postprocessing.
+
+(deftype BodyToken [
   contents
+  ; `true` if `contents` is a string "\n"
   ^Boolean newline?
+  ; `true` if `contents` is a string of whitespace characters,
+  ; representing the leading whitespace in the body part.
   ^Boolean leading-ws?
+  ; `true` if `contents` is a string of whitespace characters,
+  ; representing the trailing whitespace in the body part.
   ^Boolean trailing-ws?])
 
-(defn make-token
+(defn make-body-token
+  "Creates a `BodyToken` with an optional metadata."
   [contents & {:keys [newline leading-ws trailing-ws]
                :or {newline false
                     leading-ws false
                     trailing-ws false}}]
-  (TextToken. contents newline leading-ws trailing-ws))
+  (BodyToken. contents newline leading-ws trailing-ws))
 
-(defn map-contents [f ^TextToken token]
-  (TextToken.
-    (f (.contents token))
-    (.newline? token)
-    (.leading-ws? token)
-    (.trailing-ws? token)))
 
 
 (defn- text-accum-append
@@ -60,7 +68,7 @@
 (defn text-accum-finalize
   [text-accum]
   (mapv
-    (fn [^TextToken token] (.contents token))
+    (fn [^BodyToken token] (.contents token))
     text-accum))
 
 
@@ -68,27 +76,27 @@
   [text-accum s]
   (if (empty? s)
     text-accum
-    (text-accum-append text-accum (make-token s :trailing-ws true))))
+    (text-accum-append text-accum (make-body-token s :trailing-ws true))))
 
 (defn- append-string
   [text-accum s]
   (if (empty? s)
     text-accum
-    (text-accum-append text-accum (make-token s))))
+    (text-accum-append text-accum (make-body-token s))))
 
 (defn- append-form
   [text-accum f]
-  (text-accum-append text-accum (make-token f)))
+  (text-accum-append text-accum (make-body-token f)))
 
 (defn append-newline
   [text-accum]
-  (text-accum-append text-accum (make-token "\n" :newline true)))
+  (text-accum-append text-accum (make-body-token "\n" :newline true)))
 
 (defn dump-leading-ws
   [text-accum str-accum]
   (text-accum-append
     text-accum
-    (make-token (str-accum-finalize str-accum) :leading-ws true)))
+    (make-body-token (str-accum-finalize str-accum) :leading-ws true)))
 
 (defn- dump-string-verbatim
   [text-accum str-accum]
