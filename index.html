@@ -2866,45 +2866,47 @@ net.brehaut.ClojureTools = (function (SH) {
   };
 })(SyntaxHighlighter);
 </script><title>net.publicfields/scribble -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">net.publicfields/scribble</h1><h2 class="project-version">0.1.0-SNAPSHOT</h2><br /><p>A Racket's Scribble sub-language implementation in Clojure</p>
-</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.5.1</td></tr><tr><td class="dep-name">org.clojure/tools.reader</td><td class="dotted"><hr /></td><td class="dep-version">0.7.6</td></tr><tr><td class="dep-name">chiara</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0-SNAPSHOT</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#scribble.core">scribble.core</a></li><li><a href="#scribble.postprocess">scribble.postprocess</a></li><li><a href="#scribble.reader">scribble.reader</a></li><li><a href="#scribble.settings">scribble.settings</a></li><li><a href="#scribble.symbol">scribble.symbol</a></li><li><a href="#scribble.types">scribble.types</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.core" name="scribble.core"><h1 class="project-name">scribble.core</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>The syntax differs from the Racket's Scribble in the following ways:</p>
+</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.5.1</td></tr><tr><td class="dep-name">org.clojure/tools.reader</td><td class="dotted"><hr /></td><td class="dep-version">0.7.6</td></tr><tr><td class="dep-name">chiara</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0-SNAPSHOT</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#scribble.about">scribble.about</a></li><li><a href="#scribble.core">scribble.core</a></li><li><a href="#scribble.postprocess">scribble.postprocess</a></li><li><a href="#scribble.reader">scribble.reader</a></li><li><a href="#scribble.settings">scribble.settings</a></li><li><a href="#scribble.types">scribble.types</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.about" name="scribble.about"><h1 class="project-name">scribble.about</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><h1>Differences from Scribble</h1>
 
-<ul>
-<li><code>@;</code> stands for a simple single-line comment,
-which just consumes everything until <code>\newline</code>.</li>
-<li><code>@;;</code> does what <code>@;</code> does in Scribble, i.e. consumes everything
-until <code>\newline</code>, and then until the next non-whitespace character
-or the second <code>\newline</code>.</li>
-<li><code>{}</code> reads as a vector of string and nested forms
-and is passed as a single argument to the function,
-e.g. <code>@foo{bar @baz{blah}}</code> reads as <code>(foo ["bar " (baz ["blah"])])</code>.</li>
-<li>As a result, <code>@foo{}</code> reads as <code>(foo [])</code> and not as <code>foo</code>.</li>
-<li>Any number of <code>[]</code> and <code>{}</code> groups in any order is allowed
-in the Scribble form (provided that they are not separated by whitespace),
-e.g. <code>@foo[:bar 2]{baz}[:blah 3]</code> reads as <code>(foo :bar 2 ["baz"] :blah 3)</code>.</li>
-<li>Reader macros that follow the <code>@</code> are <em>not</em> applied to the whole form
-that starts with this <code>@</code>; rather they are applied to whatever follows
-them according to Clojure syntax.
+<p>The syntax differs from
+<a href="http://docs.racket-lang.org/scribble/reader.html">Racket's Scribble</a>
+in several ways, partly to accommodate for Clojure syntax,
+partly for other reasons described below.</p>
+
+<p>First, to make the syntax slightly more general, any number of
+datum and body parts are allowed in the Scribble form.
+This was originally intended to allow mapping of multi-argument TeX macros
+such as <code>\frac{}{}</code> easily, but may be useful in other cases.
+For example, <code>@foo[:bar 2]{baz}{blah}</code> reads as
+<code>(foo :bar 2 ["baz"] ["blah"])</code>.</p>
+
+<p>As a result, we cannot just splice the contents of a body part into
+the parent Scribble form anymore.
+Every body form is thus wrapped in a vector (see the example above).
+Another consequence is that <code>@foo{}</code> reads as <code>(foo [])</code> and not as <code>foo</code>
+(if you want the latter, you may use just <code>@foo</code> or escaped <code>@`foo`</code>).</p>
+
+<p>The next difference is caused by the implementation.
+Any reader macros that follow the <code>@</code> are <em>not</em> applied to the whole
+Scribble form that starts with this <code>@</code>; rather they are applied
+to the form that follows them according to Clojure syntax.
 Our reader gets control only when the Clojure reader finishes,
-and uses the resulting form as a command.</li>
-<li>Since <code>|</code> is an allowed character in symbols, escaped forms must contain
-a trailing whitespace: <code>@foo{foo@|3 |.}</code>.
-For the same reason an empty escaped expression must have at least one
-whitespace (including <code>\newline</code>) character in it: <code>@foo{Alice@| |Bob}</code>.</li>
-<li>To make it easier to distinguish between the starting escaped string
-and escaped form, the escaped string must start with two
-verbatim characters, e.g. <code>@||{escaped string}|</code>.</li>
-</ul>
+and uses the resulting form as a command.</p>
 
-<p>Current problems:</p>
+<p>Since the same symbol is used for spliced commands and for escaped string,
+it is impossible to distinguish whether <code>@`-</code> starts a list of forms
+(e.g. <code>@`- 3 2`</code>), or an escaped string (like <code>@`-{blah}-`</code>).
+Therefore the escaped strings at the start of a Scribble form must
+use two escaping characters: <code>@``-{blah}-`</code>.</p>
 
-<ul>
-<li>Need to pick a character to use as the entry point,
-and how can it still be used according to the standard Clojure syntax
-(not critical, providing some rare character is picked,
-but quite desirable).</li>
-<li>Other significant characters (brackets, braces, literal symbol quotes)
-may be changed as well.</li>
-</ul>
+<p>Following from the previous difference, the empty spliced command must
+contain at least one whitespace symbol: <code>@foo{Alice@` `Bob}</code>.</p>
+
+<p>Finally, <code>@;</code> consumes characters only till the newline;
+the newline-consuming comment is written as <code>@;;</code>.
+This was done because the newline-consuming comments
+are not needed too often, and can be confusing.</p>
+</td><td class="codes"><pre class="brush: clojure">(ns scribble.about)</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.core" name="scribble.core"><h1 class="project-name">scribble.core</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Containts the main part of the API.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns scribble.core
   (:use [chiara.reader.hacking :only [with-reader-macro]]
         [chiara.reader.macros :only [use-reader-macros]])
@@ -3021,7 +3023,8 @@ trailing whitespace and some newlines, based on certain conditions.</p>
           t1 ^BodyToken (nth v 1)]
       (if (and (.leading-ws? t0) (string? (.contents t1)) (not (.newline? t1)))
         ; FIXME: prepending is O(N). Need to use finger trees.
-        (into [(make-body-token (str (.contents t0) (.contents t1)))] (subvec v 2))
+        (into [(make-body-token (str (.contents t0) (.contents t1)))]
+              (subvec v 2))
         v))))</pre></td></tr><tr><td class="docs"><p>If the text accumulator ends with a non-whitespace string and
   a trailing whitespace, merges them together.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- text-merge-ending-whitespace
@@ -3086,7 +3089,6 @@ otherwise it is discarded completely.</li>
   (:require [chiara.reader.utils :as reader-methods]
             [scribble.types :refer :all]
             [scribble.postprocess :refer :all]
-            [scribble.symbol :refer :all]
             [scribble.settings :refer :all])
   (:import [scribble.settings Settings]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn- here-markers
@@ -3269,8 +3271,7 @@ otherwise it is discarded completely.</li>
       (let [c (reader-methods/read-1 reader)]
         (cond
           (and (= c escape-start-char)
-               (= (reader-methods/peek reader)
-               body-start-char))
+               (= (reader-methods/peek reader) body-start-char))
             (do
               (reader-methods/read-1 reader)
               (recur
@@ -3330,15 +3331,7 @@ otherwise it is discarded completely.</li>
         (and newline-encountered (not (whitespace? c)))
           (do (reader-methods/unread reader c) nil)
         (= \newline c) (recur true)
-        :else (recur newline-encountered)))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn- try-recognize-symbol
-  [reader token]
-  (if-let [sym (recognize-symbol token)]
-    (unwrap-symbol sym)
-    (reader-error reader &quot;Invalid symbol: &quot; token)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn- read-symbol
-  [^Settings settings reader]
-  (try-recognize-symbol reader (read-until reader (.symbol-end? settings))))</pre></td></tr><tr><td class="docs"><p>The entry point of the reader macro.</p>
+        :else (recur newline-encountered)))))</pre></td></tr><tr><td class="docs"><p>The entry point of the reader macro.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn read-entry
   [^Settings settings reader _]
   (let [body-start-char (.body-start-char settings)
@@ -3378,29 +3371,17 @@ otherwise it is discarded completely.</li>
       :else
         (do
           (reader-methods/unread reader c)
-          (let [command (if (clojure-symbol-start? c)
-                          ; reading a symbol by ourselves,
-                          ; because we need to catch '|', which is tecnhically
-                          ; allowed in Clojure symbols, and will be consumed by
-                          ; `read-next`.
-                          (read-symbol settings reader)
-                          (reader-methods/read-next reader))
+          (let [command (reader-methods/read-next reader)
                 forms (read-parts settings reader)]
             (cond
               (identical? reader forms) command
               (empty? forms) (list command)
-              :else (cons command forms)))))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.settings" name="scribble.settings"><h1 class="project-name">scribble.settings</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+              :else (cons command forms)))))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.settings" name="scribble.settings"><h1 class="project-name">scribble.settings</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Contains functions that allow you to tune the characters used for
+different purposes in the reader.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns scribble.settings)</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn whitespace? [c]
+</td><td class="codes"><pre class="brush: clojure">(defn whitespace?
+  [c]
   (or (= c \space) (= c \tab)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(def ^:private clojure-symbol-start-chars
-  ; according to http://clojure.org/reader (as of 1.5.1)
-  #{\* \+ \! \- \_ \? \/ \: \.})</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn clojure-symbol-start?
-  [^Character c]
-  (or
-    (Character/isLetter c)
-    (contains? clojure-symbol-start-chars c)))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(deftype Settings [
   ^Character entry-char
   ^Character body-start-char
@@ -3409,8 +3390,38 @@ otherwise it is discarded completely.</li>
   ^Character datum-end-char
   ^Character escape-start-char
   ^Character escape-end-char
-  ^Character comment-char
-  symbol-end?])</pre></td></tr><tr><td class="docs">
+  ^Character comment-char])</pre></td></tr><tr><td class="docs"><p>Checks the reader settings for conflicts.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn- validate-settings
+  [^Settings settings]
+  settings)</pre></td></tr><tr><td class="docs"><p>Creates a reader settings structure,
+  and checks the characters used for conflicts.
+  Parameters:</p>
+
+<ul>
+<li><code>entry-char</code>: the entry point to our custom reader.
+<strong>Warning:</strong> any default reader macro for this symbol will be unusable
+when Scribble is enabled.</li>
+<li><code>body-start-char</code>, <code>body-end-char</code>: mark the body part.
+Ideally these occur rarely in the text, otherwise a lot of escaping
+will have to be used.</li>
+<li><code>datum-start-char</code>, <code>datum-end-char</code>: mark the datum part.
+<code>datum-end-char</code> must be a macro-terminating character
+(if it's not, it has to be preceeded by whitespace
+when it's used to terminate the datum part).</li>
+<li><code>escape-start-char</code>, <code>escape-end-char</code>: used for escaping body part
+and splicing forms.
+If <code>escape-start-char</code> has a reader macro assigned, this macro will be
+unusable in the first form of the splice (because two escaping characters
+mark the beginning of an escaped body part).
+<code>escape-end-char</code> must be a macro-terminating character
+(if it's not, it has to be preceeded by whitespace
+when it's used to terminate the spliced form).</li>
+<li><p><code>comment-char</code> is used (with a preceding <code>entry-char</code>)
+to start line comments, newline-consuming comments, and multiline comments.</p>
+
+<p>Characters in every group may be equal, but should differ from all
+characters in other groups.</p></li>
+</ul>
 </td><td class="codes"><pre class="brush: clojure">(defn make-settings
   [entry-char
    body-start-char
@@ -3420,18 +3431,7 @@ otherwise it is discarded completely.</li>
    escape-start-char
    escape-end-char
    comment-char]
-  (let [symbol-end-chars
-         (set [entry-char
-               body-start-char
-               body-end-char
-               datum-start-char
-               datum-end-char
-               escape-start-char
-               escape-end-char
-               \space
-               \tab
-               \newline])
-        symbol-end? (fn [^Character c] (contains? symbol-end-chars c))]
+  (validate-settings
     (Settings. entry-char
                body-start-char
                body-end-char
@@ -3439,15 +3439,14 @@ otherwise it is discarded completely.</li>
                datum-end-char
                escape-start-char
                escape-end-char
-               comment-char
-               symbol-end?)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(def default-settings (make-settings \@ \{ \} \[ \] \| \| \;))</pre></td></tr><tr><td class="docs">
+               comment-char)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(def default-settings (make-settings \@ \{ \} \[ \] \` \` \;))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn entry-char
-  [^Settings settings-]
-  (.entry-char settings-))</pre></td></tr><tr><td class="docs">
+  [^Settings settings]
+  (.entry-char settings))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn inverse-char
   [c]
-  (condp = c
+  (case c
     \( \)
     \) \(
     \[ \]
@@ -3457,36 +3456,7 @@ otherwise it is discarded completely.</li>
     c))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn inverse-vec
   [v]
-  (vec (map inverse-char (reverse v))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.symbol" name="scribble.symbol"><h1 class="project-name">scribble.symbol</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>This namespace contains some copy-paste of the symbol-recognition code
-from <code>clojure.tools.reader</code>.
-Unfortunately, it is private and coupled to <code>reader</code>
-(which makes it difficult to work with escaped symbols),
-that's why we are not importing it.</p>
-</td><td class="codes"><pre class="brush: clojure">(ns scribble.symbol
-  (:use [clojure.tools.reader.impl.commons :only [parse-symbol]]))</pre></td></tr><tr><td class="docs"><p>A simple wrapper for a symbol returned by <code>recognize-symbol</code>,
-because that symbol can be nil, and we can't even wrap it in a list.</p>
-</td><td class="codes"><pre class="brush: clojure">(deftype WrappedSymbol [sym])</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn unwrap-symbol
-  [^WrappedSymbol wrapped-sym]
-  (.sym wrapped-sym))</pre></td></tr><tr><td class="docs"><p>Modified <code>read-symbol</code> from <code>clojure.tools.reader.impl.commons</code>.</p>
-
-<p>  Checks if the string has the proper format for a symbol,
-  and returns the <code>'(symbol)</code> (to account for the symbol being <code>nil</code>),
-  or <code>nil</code> if the recognition failed.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn recognize-symbol
-  [^String token]
-  (case token
-    ; special symbols
-    &quot;nil&quot; (WrappedSymbol. nil)
-    &quot;true&quot; (WrappedSymbol. true)
-    &quot;false&quot; (WrappedSymbol. false)
-    &quot;/&quot; (WrappedSymbol. '/)
-    ; CLJ-1074 is not merged yet, so these literals do not work
-    ;&quot;NaN&quot; (WrappedSymbol. Double/NaN)
-    ;&quot;-Infinity&quot; (WrappedSymbol. Double/NEGATIVE_INFINITY)
-    ;(&quot;Infinity&quot; &quot;+Infinity&quot;) (WrappedSymbol. Double/POSITIVE_INFINITY)
-    (when-let [p (parse-symbol token)]
-      (WrappedSymbol. (symbol (p 0) (p 1))))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.types" name="scribble.types"><h1 class="project-name">scribble.types</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Contains methods for the string accumulator, the body part accumulator,
+  (vec (map inverse-char (reverse v))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.types" name="scribble.types"><h1 class="project-name">scribble.types</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Contains methods for the string accumulator, the body part accumulator,
 and the body part token.
 This way the underlying data structures can be changed easily if needed,
 and the complexity requirements can be assessed.</p>
@@ -3518,19 +3488,22 @@ but would require <code>O(n)</code> time to obtain during the postprocessing.</p
 </td><td class="codes"><pre class="brush: clojure">(deftype BodyToken [
   contents
   ; `true` if `contents` is a string &quot;\n&quot;
-  ^Boolean newline?
+  ^boolean newline?
   ; `true` if `contents` is a string of whitespace characters,
   ; representing the leading whitespace in the body part.
-  ^Boolean leading-ws?
+  ^boolean leading-ws?
   ; `true` if `contents` is a string of whitespace characters,
   ; representing the trailing whitespace in the body part.
-  ^Boolean trailing-ws?])</pre></td></tr><tr><td class="docs"><p>Creates a <code>BodyToken</code> with an optional metadata.</p>
+  ^boolean trailing-ws?])</pre></td></tr><tr><td class="docs"><p>Creates a <code>BodyToken</code> with an optional metadata.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn make-body-token
   [contents &amp; {:keys [newline leading-ws trailing-ws]
                :or {newline false
                     leading-ws false
                     trailing-ws false}}]
-  (BodyToken. contents newline leading-ws trailing-ws))</pre></td></tr><tr><td class="docs"><h1>Body part accumulator methods</h1>
+  (BodyToken. contents
+              (boolean newline)
+              (boolean leading-ws)
+              (boolean trailing-ws)))</pre></td></tr><tr><td class="docs"><h1>Body part accumulator methods</h1>
 
 <p>Text accumulator collects <code>BodyToken</code>s when a body part is read.</p>
 </td><td class="codes"></td></tr><tr><td class="docs">
@@ -3608,7 +3581,7 @@ but would require <code>O(n)</code> time to obtain during the postprocessing.</p
               (if (::splice (meta nested-form))
                 (reduce append-form text-accum-with-str nested-form)
                 (append-form text-accum-with-str nested-form))]
-        [text-accum []])))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr></table><div class="footer">Generated by <a href="https://github.com/fogus/marginalia">Marginalia</a>.&nbsp;&nbsp;Syntax highlighting provided by Alex Gorbatchev's <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a>marginalia.html$floating_toc_html@37e80c87</div><script type="text/javascript">SyntaxHighlighter.defaults['gutter'] = false;
+        [text-accum []])))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr></table><div class="footer">Generated by <a href="https://github.com/fogus/marginalia">Marginalia</a>.&nbsp;&nbsp;Syntax highlighting provided by Alex Gorbatchev's <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a>marginalia.html$floating_toc_html@5e73e0d</div><script type="text/javascript">SyntaxHighlighter.defaults['gutter'] = false;
 SyntaxHighlighter.all();
 
 // hackity hack
