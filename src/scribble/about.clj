@@ -1,6 +1,9 @@
-;; The syntax differs from the Racket's Scribble in several ways,
-;; partly to accommodate for Clojure syntax, partly for other reasons
-;; described below.
+;; # Differences from Scribble
+;;
+;; The syntax differs from
+;; [Racket's Scribble](http://docs.racket-lang.org/scribble/reader.html)
+;; in several ways, partly to accommodate for Clojure syntax,
+;; partly for other reasons described below.
 ;;
 ;; First, to make the syntax slightly more general, any number of
 ;; datum and body parts are allowed in the Scribble form.
