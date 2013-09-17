@@ -3,7 +3,6 @@
   (:require [chiara.reader.utils :as reader-methods]
             [scribble.types :refer :all]
             [scribble.postprocess :refer :all]
-            [scribble.symbol :refer :all]
             [scribble.settings :refer :all])
   (:import [scribble.settings Settings]))
 
@@ -273,16 +272,6 @@
         (= \newline c) (recur true)
         :else (recur newline-encountered)))))
 
-(defn- try-recognize-symbol
-  [reader token]
-  (if-let [sym (recognize-symbol token)]
-    (unwrap-symbol sym)
-    (reader-error reader "Invalid symbol: " token)))
-
-(defn- read-symbol
-  [^Settings settings reader]
-  (try-recognize-symbol reader (read-until reader (.symbol-end? settings))))
-
 (defn read-entry
   "The entry point of the reader macro."
   [^Settings settings reader _]
@@ -323,13 +312,7 @@
       :else
         (do
           (reader-methods/unread reader c)
-          (let [command (if (clojure-symbol-start? c)
-                          ; reading a symbol by ourselves,
-                          ; because we need to catch '|', which is tecnhically
-                          ; allowed in Clojure symbols, and will be consumed by
-                          ; `read-next`.
-                          (read-symbol settings reader)
-                          (reader-methods/read-next reader))
+          (let [command (reader-methods/read-next reader)
                 forms (read-parts settings reader)]
             (cond
               (identical? reader forms) command

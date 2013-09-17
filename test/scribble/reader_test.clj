@@ -8,7 +8,9 @@
 
 ; Tests were taken from the orignal Scribble documentation,
 ; so we use its symbols.
-(def scribble-settings (make-settings \@ \{ \} \[ \] \| \| \;))
+; (except for the \` instead of \|,
+; because the latter is not macro-terminating)
+(def scribble-settings (make-settings \@ \{ \} \[ \] \` \` \;))
 
 ; Unfortunately, the reader that reads from strings does not have
 ; line/column metadata.
@@ -179,12 +181,12 @@
    '(["blah " foo- " blah"]))
 
   (fact "escaped command in a body part"
-   '@{blah @|foo |- blah}
+   '@{blah @`foo`- blah}
     =>
    '(["blah " foo "- blah"]))
 
   (fact "body part resumes right after an escaped command"
-   '@{blah @|foo |[3] blah}
+   '@{blah @`foo`[3] blah}
     =>
    '(["blah " foo "[3] blah"]))
 
@@ -226,32 +228,32 @@
   ; Here strings
 
   (fact "unbalanced body part delimiters in an escaped body part"
-   '@foo|{bar}@{baz}|
+   '@foo`{bar}@{baz}`
    =>
    '(foo ["bar}@{baz"]))
 
   (fact "balanced escaped body part delimiters in an escaped body part"
-   '@foo|{Nesting |{is}| ok}|
+   '@foo`{Nesting `{is}` ok}`
     =>
-   '(foo ["Nesting |{is}| ok"]))
+   '(foo ["Nesting `{is}` ok"]))
 
   (fact "an escaped nested command in an escaped body part"
-   '@foo|{bar |@x{X} baz}|
+   '@foo`{bar `@x{X} baz}`
     =>
    '(foo ["bar " (x ["X"]) " baz"]))
 
   (fact "an escaped nested body part in an escaped body part"
-   '@foo|{bar |@x|{@}| baz}|
+   '@foo`{bar `@x`{@}` baz}`
     =>
    '(foo ["bar " (x ["@"]) " baz"]))
 
   ; check that there is no off-by-one error because the delimiter is
   ; two symbols instead of one
   (fact "an escaped body part truncates leading indentation properly"
-   '@foo|{Maze
-          |@bar{is}
+   '@foo`{Maze
+          `@bar{is}
          Life!
-           blah blah}|
+           blah blah}`
     =>
    '(foo ["Maze" "\n"
       (bar ["is"]) "\n"
@@ -259,17 +261,17 @@
       " " "blah blah"]))
 
   (fact "an escaped body part with delimiters"
-   '@foo|--{bar}@|{baz}--|
+   '@foo`--{bar}@`{baz}--`
     =>
-   '(foo ["bar}@|{baz"]))
+   '(foo ["bar}@`{baz"]))
 
   (fact "an escaped body part with mirrored delimiters"
-   '@foo|<(-[{bar}@|{baz}]-)>|
+   '@foo`<(-[{bar}@`{baz}]-)>`
     =>
-   '(foo ["bar}@|{baz"]))
+   '(foo ["bar}@`{baz"]))
 
   (fact "an escaped body part with a nested form"
-   '@foo|!!{X |!!@b{Y}...}!!|
+   '@foo`!!{X `!!@b{Y}...}!!`
     =>
    '(foo ["X " (b ["Y"]) "..."]))
 
@@ -296,19 +298,19 @@
   ; immediately follows), not the whole Scribble form.
 
   (fact "stacked reader macros work"
-   '@`'~@@foo{blah}
+   '@'~@@foo{blah}
     =>
-   '`'~@(foo ["blah"]))
+   ''~@(foo ["blah"]))
 
   (fact "command can be any expression"
    '@(lambda (x) x){blah}
     =>
    '((lambda (x) x) ["blah"]))
 
-  (fact "syntax quotes and expression-command work together"
-   '@`(unquote foo){blah}
+  (fact "reader macros and expression-command work together"
+   '@@(unquote foo){blah}
     =>
-   '(`(unquote foo) ["blah"]))
+   '(@(unquote foo) ["blah"]))
 
   (fact "command and normal part can be omitted"
    '@{foo bar
@@ -318,10 +320,10 @@
       "baz"]))
 
   (fact "a lone body part can be escaped"
-   '@||{abcde}| => '(["abcde"]))
+   '@``{abcde}` => '(["abcde"]))
 
   (fact "a lone body part can be escaped with delimiters"
-   '@||-abc{abcde}cba-| => '(["abcde"]))
+   '@``-abc{abcde}cba-` => '(["abcde"]))
 
 
   (fact "a comment form glues surrounding strings"
@@ -362,7 +364,7 @@
    '(foo ["foo" bar.]))
 
   (fact "text in an escaped expression is not merged with the surrounding text"
-   '@foo{x@|"y"|z}
+   '@foo{x@`"y"`z}
     =>
    '(foo ["x" "y" "z"]))
 
@@ -372,25 +374,25 @@
    '(foo ["foo" 3.0]))
 
   (fact "a number as an escaped expression"
-   '@foo{foo@|3 |.}
+   '@foo{foo@`3`.}
     =>
    '(foo ["foo" 3 "."]))
 
   (fact "escaped expression with multiple forms is spliced"
-   '@foo{x@|1 (+ 2 3) 4 |y}
+   '@foo{x@`1 (+ 2 3) 4`y}
     =>
    '(foo ["x" 1 (+ 2 3) 4 "y"]))
 
   (fact "escaped expression with a line break"
-   '@foo{x@|*
-        * |y}
+   '@foo{x@`*
+         *`y}
     =>
    '(foo ["x" *
       * "y"]))
 
   (fact "an empty escaped expression"
-   '@foo{Alice@| |Bob@|
-         |Carol}
+   '@foo{Alice@` `Bob@`
+         `Carol}
     =>
    '(foo ["Alice" "Bob"
       "Carol"]))
@@ -437,24 +439,24 @@
     (throws RuntimeException "EOF while reading"))
 
   (fact "almost finished beginning here-string (except for the `{`)"
-   '@foo|--{|--abc}--|
+   '@foo`--{`--abc}--`
     =>
-   '(foo ["|--abc"]))
+   '(foo ["`--abc"]))
 
   (fact "almost finished ending here-string (except for the `}`)"
-   '@foo|--{abc}--}--|
+   '@foo`--{abc}--}--`
     =>
    '(foo ["abc}--"]))
 
   (fact "comment inside an escaped body part"
-   '@foo|{abc |@; comment
-          cba}|
+   '@foo`{abc `@; comment
+          cba}`
     =>
    '(foo ["abc" "\n" "cba"]))
 
   (fact "final leading whitespace in an escaped body part"
-   '@foo|{abc
-    }|
+   '@foo`{abc
+    }`
     =>
    '(foo ["abc"]))
 
@@ -509,7 +511,7 @@
   (fact "an exception is thrown if the symbol is invalid"
     (read-scribble "@foo::{abc}")
     =>
-    (throws "Invalid symbol: foo::"))
+    (throws RuntimeException "Invalid token: foo::"))
 
   (fact "unexpected EOF in a body part"
     (read-scribble "@foo{abc")
