@@ -43,13 +43,13 @@
 (deftype BodyToken [
   contents
   ; `true` if `contents` is a string "\n"
-  ^Boolean newline?
+  ^boolean newline?
   ; `true` if `contents` is a string of whitespace characters,
   ; representing the leading whitespace in the body part.
-  ^Boolean leading-ws?
+  ^boolean leading-ws?
   ; `true` if `contents` is a string of whitespace characters,
   ; representing the trailing whitespace in the body part.
-  ^Boolean trailing-ws?])
+  ^boolean trailing-ws?])
 
 (defn make-body-token
   "Creates a `BodyToken` with an optional metadata."
@@ -57,7 +57,10 @@
                :or {newline false
                     leading-ws false
                     trailing-ws false}}]
-  (BodyToken. contents newline leading-ws trailing-ws))
+  (BodyToken. contents
+              (boolean newline)
+              (boolean leading-ws)
+              (boolean trailing-ws)))
 
 
 
