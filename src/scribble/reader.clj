@@ -212,8 +212,7 @@
       (let [c (reader-methods/read-1 reader)]
         (cond
           (and (= c escape-start-char)
-               (= (reader-methods/peek reader)
-               body-start-char))
+               (= (reader-methods/peek reader) body-start-char))
             (do
               (reader-methods/read-1 reader)
               (recur
