@@ -105,7 +105,8 @@
           t1 ^BodyToken (nth v 1)]
       (if (and (.leading-ws? t0) (string? (.contents t1)) (not (.newline? t1)))
         ; FIXME: prepending is O(N). Need to use finger trees.
-        (into [(make-body-token (str (.contents t0) (.contents t1)))] (subvec v 2))
+        (into [(make-body-token (str (.contents t0) (.contents t1)))]
+              (subvec v 2))
         v))))
 
 (defn- text-merge-ending-whitespace
