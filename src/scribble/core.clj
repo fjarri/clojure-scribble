@@ -1,38 +1,41 @@
-;; The syntax differs from the Racket's Scribble in the following ways:
+;; The syntax differs from the Racket's Scribble in several ways,
+;; partly to accommodate for Clojure syntax, partly for other reasons
+;; described below.
 ;;
-;; - `@;` stands for a simple single-line comment,
-;;   which just consumes everything until `\newline`.
-;; - `@;;` does what `@;` does in Scribble, i.e. consumes everything
-;;   until `\newline`, and then until the next non-whitespace character
-;;   or the second `\newline`.
-;; - `{}` reads as a vector of string and nested forms
-;;   and is passed as a single argument to the function,
-;;   e.g. `@foo{bar @baz{blah}}` reads as `(foo ["bar " (baz ["blah"])])`.
-;; - As a result, `@foo{}` reads as `(foo [])` and not as `foo`.
-;; - Any number of `[]` and `{}` groups in any order is allowed
-;;   in the Scribble form (provided that they are not separated by whitespace),
-;;   e.g. `@foo[:bar 2]{baz}[:blah 3]` reads as `(foo :bar 2 ["baz"] :blah 3)`.
-;; - Reader macros that follow the `@` are *not* applied to the whole form
-;;   that starts with this `@`; rather they are applied to whatever follows
-;;   them according to Clojure syntax.
-;;   Our reader gets control only when the Clojure reader finishes,
-;;   and uses the resulting form as a command.
-;; - Since `|` is an allowed character in symbols, escaped forms must contain
-;;   a trailing whitespace: `@foo{foo@|3 |.}`.
-;;   For the same reason an empty escaped expression must have at least one
-;;   whitespace (including `\newline`) character in it: `@foo{Alice@| |Bob}`.
-;; - To make it easier to distinguish between the starting escaped string
-;;   and escaped form, the escaped string must start with two
-;;   verbatim characters, e.g. `@||{escaped string}|`.
+;; First, to make the syntax slightly more general, any number of
+;; datum and body parts are allowed in the Scribble form.
+;; This was originally intended to allow mapping of multi-argument TeX macros
+;; such as `\frac{}{}` easily, but may be useful in other cases.
+;; For example, `@foo[:bar 2]{baz}{blah}` reads as
+;; `(foo :bar 2 ["baz"] ["blah"])`.
 ;;
-;; Current problems:
+;; As a result, we cannot just splice the contents of a body part into
+;; the parent Scribble form anymore.
+;; Every body form is thus wrapped in a vector (see the example above).
+;; Another consequence is that `@foo{}` reads as `(foo [])` and not as `foo`
+;; (if you want the latter, you may use just `@foo` or escaped `@`foo``).
 ;;
-;; - Need to pick a character to use as the entry point,
-;;   and how can it still be used according to the standard Clojure syntax
-;;   (not critical, providing some rare character is picked,
-;;   but quite desirable).
-;; - Other significant characters (brackets, braces, literal symbol quotes)
-;;   may be changed as well.
+;; The next difference is caused by the implementation.
+;; Any reader macros that follow the `@` are *not* applied to the whole
+;; Scribble form that starts with this `@`; rather they are applied
+;; to the form that follows them according to Clojure syntax.
+;; Our reader gets control only when the Clojure reader finishes,
+;; and uses the resulting form as a command.
+;;
+;; Since the same symbol is used for spliced commands and for escaped string,
+;; it is impossible to distinguish whether `@`-` starts a list of forms
+;; (e.g. `@`- 3 2``), or an escaped string (like `@`-{blah}-``).
+;; Therefore the escaped strings at the start of a Scribble form must
+;; use two escaping characters: `@``-{blah}-``.
+;;
+;; Following from the previous difference, the empty spliced command must
+;; contain at least one whitespace symbol: `@foo{Alice@` `Bob}`.
+;;
+;; Finally, `@;` consumes characters only till the newline;
+;; the newline-consuming comment is written as `@;;`.
+;; This was done because the newline-consuming comments
+;; are not needed too often, and can be confusing.
+;;
 (ns scribble.core
   (:use [chiara.reader.hacking :only [with-reader-macro]]
         [chiara.reader.macros :only [use-reader-macros]])
