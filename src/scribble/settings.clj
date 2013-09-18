@@ -17,7 +17,7 @@
 
 (defn- assert-not-intersect
   [set1 set2 message]
-  (when-not (empty? (intersection set1 set2))
+  (when (seq (intersection set1 set2))
     (throw (ex-info message {:set1 set1 :set2 set2}))))
 
 (defn- validate-settings

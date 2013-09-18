@@ -13,7 +13,7 @@
   [reader & msg]
   (throw
     (ex-info
-      (apply str msg)
+      (clojure.string/join msg)
       (merge {:type :reader-exception}
              (when-let [[l c] (reader-methods/reader-position reader)]
                {:line l :column c})))))
