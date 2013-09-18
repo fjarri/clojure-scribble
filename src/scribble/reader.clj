@@ -186,6 +186,9 @@
           (assoc state :here-str-pos 0)))))))
 
 (defn- read-body-part
+  "Reads a body part, escaped by `here-str`
+  (i.e. looking like `` `<here-str>{text here}<inverse-here-str>` ``).
+  If `here-str` is `nil`, the body part is considered to be non-escaped."
   [^Settings settings reader here-str]
   ; FIXME: check that here-str does not contain escape-start/end chars,
   ; entry char, or body-start/end chars
@@ -196,6 +199,7 @@
     body-part))
 
 (defn- read-until
+  "Reads and returns a string until (and not including) `delim`."
   [reader delim]
   (loop [str-accum (make-str-accum)]
     (let [c (reader-methods/read-1 reader)]
@@ -208,6 +212,8 @@
         :else (recur (str-accum-push str-accum c))))))
 
 (defn- read-parts
+  "Reads datum and body parts of the form,
+  until EOF or whitespace is encountered."
   [^Settings settings reader]
   (let [body-start-char (.body-start-char settings)
         datum-start-char (.datum-start-char settings)
