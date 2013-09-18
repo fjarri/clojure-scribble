@@ -12,8 +12,10 @@
 
 (defn make-str-accum
   "Creates an empty string accumulator."
-  []
-  [])
+  ([]
+    [])
+  ([c]
+    [c]))
 
 (defn str-accum-pop
   "Removes the last `n` characters from `str-accum`."
