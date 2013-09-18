@@ -47,85 +47,98 @@
         escape-end-char (.escape-end-char settings)]
   (loop [body-accum []
          str-accum (make-str-accum)
-         ; FIXME: using a custom type will be faster
-         state {:leading-ws true
-                :brace-level 0
-                :here-str-pos 0}]
+         leading-ws true
+         brace-level 0
+         here-str-pos 0]
     (let [c (reader-methods/read-1 reader)]
       (cond
 
         (or (and escaped
                  (= c escape-end-char)
-                 (= (- (:here-str-pos state)) here-marker-len))
+                 (= (- here-str-pos) here-marker-len))
             (and (not escaped)
                  (= c body-end-char)))
-          (if (zero? (:brace-level state))
-            (if (:leading-ws state)
+          (if (zero? brace-level)
+            (if leading-ws
               (dump-leading-ws body-accum str-accum)
               (dump-string body-accum (str-accum-pop str-accum here-marker-len)))
             (let [[body-accum str-accum]
-                    (if (:leading-ws state)
+                    (if leading-ws
                       [(dump-leading-ws body-accum str-accum) (make-str-accum c)]
                       [body-accum (str-accum-push str-accum c)])]
-              (recur body-accum str-accum
-                (assoc state
-                  :leading-ws false
-                  :brace-level (dec (:brace-level state))
-                  :here-str-pos 0))))
+              (recur
+                body-accum
+                str-accum
+                false
+                (dec brace-level)
+                0)))
 
         (or (and escaped
                  (= c escape-start-char))
             (and (= c body-start-char)
-                 (= (:here-str-pos state) here-marker-len)))
+                 (= here-str-pos here-marker-len)))
           (let [[body-accum str-accum]
-                  (if (:leading-ws state)
+                  (if leading-ws
                     [(dump-leading-ws body-accum str-accum) (make-str-accum c)]
                     [body-accum (str-accum-push str-accum c)])]
-            (recur body-accum str-accum
-              (assoc state :leading-ws false
-                           :here-str-pos
-                              (if (= c escape-start-char) 1 0)
-                           :brace-level
-                              (if (= c body-start-char)
-                                (inc (:brace-level state))
-                                (:brace-level state)))))
+            (recur
+              body-accum
+              str-accum
+              false
+              (if (= c body-start-char)
+                (inc brace-level)
+                brace-level)
+              (if (= c escape-start-char) 1 0)))
 
         (and escaped
              (= c body-end-char))
           (let [[body-accum str-accum]
-                  (if (:leading-ws state)
+                  (if leading-ws
                     [(dump-leading-ws body-accum str-accum) (make-str-accum c)]
                     [body-accum (str-accum-push str-accum c)])]
-              (recur body-accum str-accum
-                (assoc state
-                  :here-str-pos -1
-                  :leading-ws false)))
+              (recur
+                body-accum
+                str-accum
+                false
+                brace-level
+                -1))
 
 
         (and (= c entry-char)
-             (= (:here-str-pos state) here-marker-len))
+             (= here-str-pos here-marker-len))
           (let [nested-form (read-entry settings reader c)
                 str-accum (str-accum-pop str-accum here-marker-len)
                 [body-accum str-accum]
                   (if (identical? nested-form reader)
                     [body-accum str-accum]
                     (dump-nested-form
-                      body-accum str-accum nested-form (:leading-ws state)))]
-            (recur body-accum str-accum
-              (assoc state :here-str-pos 0
-                           :leading-ws false)))
+                      body-accum str-accum nested-form leading-ws))]
+            (recur
+              body-accum
+              str-accum
+              false
+              brace-level
+              0))
 
-        (and (pos? (:here-str-pos state))
-             (< (:here-str-pos state) here-marker-len)
-             (= c (nth here-start (:here-str-pos state))))
-          (recur body-accum (str-accum-push str-accum c)
-            (update-in state [:here-str-pos] inc))
+        (and (pos? here-str-pos)
+             (< here-str-pos here-marker-len)
+             (= c (nth here-start here-str-pos)))
+          (recur
+            body-accum
+            (str-accum-push str-accum c)
+            leading-ws
+            brace-level
+            (inc here-str-pos))
 
-        (and (neg? (:here-str-pos state))
-             (< (- (:here-str-pos state)) here-marker-len)
-             (= c (nth here-end (- (:here-str-pos state)))))
-          (recur body-accum (str-accum-push str-accum c)
-            (update-in state [:here-str-pos] dec))
+        (and (neg? here-str-pos)
+             (< (- here-str-pos) here-marker-len)
+             (= c (nth here-end (- here-str-pos))))
+          (recur
+            body-accum
+            (str-accum-push str-accum c)
+            leading-ws
+            brace-level
+            (dec here-str-pos))
 
         ; unexpected EOF
         (nil? c)
@@ -141,21 +154,35 @@
             (recur
               body-accum
               (make-str-accum)
-              (assoc state :leading-ws true :here-str-pos 0)))
+              true
+              brace-level
+              0))
 
         ; in leading whitespace mode, whitespace character encountered
-        (and (whitespace? c) (:leading-ws state))
+        (and (whitespace? c) leading-ws)
           (recur
             body-accum
             (str-accum-push str-accum c)
-            (assoc state :leading-ws true :here-str-pos 0))
-        (:leading-ws state)
-          (recur (dump-leading-ws body-accum str-accum) (make-str-accum c)
-            (assoc state :leading-ws false :here-str-pos 0))
+            true
+            brace-level
+            0)
+
+        leading-ws
+          (recur
+            (dump-leading-ws body-accum str-accum)
+            (make-str-accum c)
+            false
+            brace-level
+            0)
 
         ; reading characters
-        :else (recur body-accum (str-accum-push str-accum c)
-          (assoc state :here-str-pos 0)))))))
+        :else
+          (recur
+            body-accum
+            (str-accum-push str-accum c)
+            leading-ws
+            brace-level
+            0))))))
 
 (defn- validate-here-str
   "Checks that `here-str` does not contain escape-start/end chars,
