@@ -4,7 +4,7 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [org.clojure/tools.reader "0.7.6"]
+                 [org.clojure/math.combinatorics "0.0.4"]
                  [chiara "0.2.0-SNAPSHOT"]]
   :profiles {
     :dev {

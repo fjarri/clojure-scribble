@@ -1,10 +1,22 @@
 (ns scribble.reader
-  (:use [clojure.tools.reader.reader-types :only [reader-error]])
   (:require [chiara.reader.utils :as reader-methods]
             [scribble.types :refer :all]
             [scribble.postprocess :refer :all]
             [scribble.settings :refer :all])
   (:import [scribble.settings Settings]))
+
+
+(defn- reader-error
+  "Throws an ExceptionInfo with the given message.
+  If `reader` provides line/column metadata,
+  it will be included in the exception."
+  [reader & msg]
+  (throw
+    (ex-info
+      (apply str msg)
+      (merge {:type :reader-exception}
+             (when-let [[l c] (reader-methods/reader-position reader)]
+               {:line l :column c})))))
 
 
 (defn- here-markers
