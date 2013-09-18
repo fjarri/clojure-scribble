@@ -184,12 +184,12 @@
     body-part))
 
 (defn- read-until
-  [reader stop-condition?]
+  [reader delim]
   (loop [str-accum (make-str-accum)]
     (let [c (reader-methods/read-1 reader)]
       (cond
         (nil? c) (str-accum-finalize str-accum)
-        (stop-condition? c)
+        (= delim c)
           (do
             (reader-methods/unread reader c)
             (str-accum-finalize str-accum))
@@ -217,7 +217,7 @@
                 (conj forms-read (read-body-part settings reader ""))
                 true))
           (= c escape-start-char)
-            (let [s (read-until reader #(= % body-start-char))
+            (let [s (read-until reader body-start-char)
                   _ (reader-methods/read-1 reader)
                   body-part (read-body-part settings reader s)]
               (recur
