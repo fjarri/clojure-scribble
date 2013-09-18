@@ -87,6 +87,7 @@
     \> \<
     c))
 
-(defn inverse-vec
-  [v]
-  (vec (map inverse-char (reverse v))))
+(defn inverse-str
+  [s]
+  (clojure.string/join
+    (mapv inverse-char (reverse s))))

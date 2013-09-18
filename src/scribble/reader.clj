@@ -13,9 +13,7 @@
     [[] []]
     [
       (str \space here-str)
-      (str
-        \space
-        (clojure.string/join (inverse-vec (vec here-str))))]))
+      (str \space (inverse-str here-str))]))
 
 
 (declare read-entry)
