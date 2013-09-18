@@ -229,12 +229,15 @@
                 (conj forms-read (read-body-part settings reader ""))
                 true))
           (= c escape-start-char)
-            (let [s (read-until reader body-start-char)
-                  _ (reader-methods/read-1 reader)
-                  body-part (read-body-part settings reader s)]
-              (recur
-                (conj forms-read body-part)
-                true))
+            (let [here-str (read-until reader body-start-char)
+                  next-c (reader-methods/read-1 reader)]
+              (if (nil? next-c)
+                (reader-error reader
+                  "Unexpected EOF while reading a here-string")
+                (let [body-part (read-body-part settings reader here-str)]
+                  (recur
+                    (conj forms-read body-part)
+                    true))))
           (= c body-start-char)
             (recur
               (conj forms-read (read-body-part settings reader nil))

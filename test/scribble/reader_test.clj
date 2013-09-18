@@ -518,4 +518,9 @@
     =>
     (throws "Unexpected EOF while reading a body part"))
 
+  (fact "unexpected EOF in while reading a here-string"
+    (read-scribble "@``--")
+    =>
+    (throws "Unexpected EOF while reading a here-string"))
+
 ))
