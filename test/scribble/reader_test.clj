@@ -523,4 +523,10 @@
     =>
     (throws "Unexpected EOF while reading a here-string"))
 
+  (fact "invalid characters in a here-string"
+    (read-scribble "@foo`-@{some text}@-`")
+    =>
+    (throws "Here-string contains invalid characters"))
+
+
 ))

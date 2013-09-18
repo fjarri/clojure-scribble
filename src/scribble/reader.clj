@@ -1,4 +1,5 @@
 (ns scribble.reader
+  (:use [clojure.set :only [intersection]])
   (:require [chiara.reader.utils :as reader-methods]
             [scribble.types :refer :all]
             [scribble.postprocess :refer :all]
@@ -185,14 +186,30 @@
         :else (recur body-accum (str-accum-push str-accum c)
           (assoc state :here-str-pos 0)))))))
 
+(defn- validate-here-str
+  "Checks that `here-str` does not contain escape-start/end chars,
+  entry char, or body-end char (it does not contain the body-start char
+  because of the way it was read).
+  This makes it easier to watch for it when reading the body part."
+  [^Settings settings reader here-str]
+  (if (nil? here-str)
+    here-str
+    (let [prohibited-chars (set [(.entry-char settings)
+                                 (.body-end-char settings)
+                                 (.escape-start-char settings)
+                                 (.escape-end-char settings)])
+          here-str-chars (set here-str)]
+      (if (empty? (intersection prohibited-chars here-str-chars))
+        here-str
+        (reader-error reader "Here-string contains invalid characters")))))
+
 (defn- read-body-part
   "Reads a body part, escaped by `here-str`
   (i.e. looking like `` `<here-str>{text here}<inverse-here-str>` ``).
   If `here-str` is `nil`, the body part is considered to be non-escaped."
   [^Settings settings reader here-str]
-  ; FIXME: check that here-str does not contain escape-start/end chars,
-  ; entry char, or body-start/end chars
-  (let [[_ c] (reader-methods/reader-position reader)
+  (let [here-str (validate-here-str settings reader here-str)
+        [_ c] (reader-methods/reader-position reader)
         column (if (nil? c) 0 c)
         body-accum (read-body settings reader here-str)
         body-part (text-postprocess body-accum column)]
