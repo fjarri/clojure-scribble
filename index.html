@@ -2866,7 +2866,7 @@ net.brehaut.ClojureTools = (function (SH) {
   };
 })(SyntaxHighlighter);
 </script><title>net.publicfields/scribble -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">net.publicfields/scribble</h1><h2 class="project-version">0.1.0-SNAPSHOT</h2><br /><p>A Racket's Scribble sub-language implementation in Clojure</p>
-</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.5.1</td></tr><tr><td class="dep-name">org.clojure/tools.reader</td><td class="dotted"><hr /></td><td class="dep-version">0.7.6</td></tr><tr><td class="dep-name">chiara</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0-SNAPSHOT</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#scribble.about">scribble.about</a></li><li><a href="#scribble.core">scribble.core</a></li><li><a href="#scribble.postprocess">scribble.postprocess</a></li><li><a href="#scribble.reader">scribble.reader</a></li><li><a href="#scribble.settings">scribble.settings</a></li><li><a href="#scribble.types">scribble.types</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.about" name="scribble.about"><h1 class="project-name">scribble.about</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><h1>Differences from Scribble</h1>
+</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.5.1</td></tr><tr><td class="dep-name">org.clojure/math.combinatorics</td><td class="dotted"><hr /></td><td class="dep-version">0.0.4</td></tr><tr><td class="dep-name">chiara</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0-SNAPSHOT</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#scribble.about">scribble.about</a></li><li><a href="#scribble.core">scribble.core</a></li><li><a href="#scribble.postprocess">scribble.postprocess</a></li><li><a href="#scribble.reader">scribble.reader</a></li><li><a href="#scribble.settings">scribble.settings</a></li><li><a href="#scribble.types">scribble.types</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.about" name="scribble.about"><h1 class="project-name">scribble.about</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><h1>Differences from Scribble</h1>
 
 <p>The syntax differs from
 <a href="http://docs.racket-lang.org/scribble/reader.html">Racket's Scribble</a>
@@ -2928,11 +2928,8 @@ are not needed too often, and can be confusing.</p>
   with default settings.</p>
 </td><td class="codes"><pre class="brush: clojure">(defmacro with-scribble
   [&amp; exprs]
- `(with-scribble-settings default-settings ~@exprs))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.postprocess" name="scribble.postprocess"><h1 class="project-name">scribble.postprocess</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><h1>Postprocessing for a text block</h1>
-
-<p>In order to reduce the amount of spurious whitespace of a text block,
-Scribble truncates leading whitespace and discards
-trailing whitespace and some newlines, based on certain conditions.</p>
+ `(with-scribble-settings default-settings ~@exprs))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.postprocess" name="scribble.postprocess"><h1 class="project-name">scribble.postprocess</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Contains postprocessing functions for the body part,
+which remove redundant whitespace.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns scribble.postprocess
   (:require [scribble.types :refer :all])
   (:import [scribble.types BodyToken]))</pre></td></tr><tr><td class="docs">
@@ -2941,111 +2938,146 @@ trailing whitespace and some newlines, based on certain conditions.</p>
   (or
     (.newline? token)
     (.leading-ws? token)
-    (.trailing-ws? token)))</pre></td></tr><tr><td class="docs"><p>Returns <code>true</code> if the sequence <code>v</code> contains only `\newline``s
+    (.trailing-ws? token)))</pre></td></tr><tr><td class="docs"><p>Returns <code>true</code> if <code>body-accum</code> contains only `\newline``s
   and strings of whitespace characters.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- whitespace-only?
-  &quot;Returns `true` if the sequence `v` contains only `\\newline``s
+  &quot;Returns `true` if `body-accum` contains only `\\newline``s
   and strings of whitespace characters.&quot;
-  [^BodyToken token]
-  (every? whitespace-or-newline? token))</pre></td></tr><tr><td class="docs"><p>Trim (a possible whitespace string and) a newline string
-  from the vector <code>v</code>, if they are present.</p>
+  [body-accum]
+  (every? whitespace-or-newline? body-accum))</pre></td></tr><tr><td class="docs"><p>Trim (a possible whitespace string and) a newline string
+  from <code>body-accum</code>, if they are present.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- trim-leading-newline
-  [v]
-  (if (empty? v)
-    v
-    (let [^BodyToken t-first (nth v 0)]
-      (if (= (count v) 1)
+  [body-accum]
+  (if (empty? body-accum)
+    body-accum
+    (let [^BodyToken t-first (nth body-accum 0)]
+      (if (= (count body-accum) 1)
         (if (.newline? t-first)
           []
-          v)
-        (let [^BodyToken t-second (nth v 1)]
+          body-accum)
+        (let [^BodyToken t-second (nth body-accum 1)]
           (cond
-            (.newline? t-first) (subvec v 1)
-            (and (.leading-ws? t-first) (.newline? t-second)) (subvec v 2)
-            :else v))))))</pre></td></tr><tr><td class="docs"><p>Trim a newline string (and a possible whitespace string)
-  from the vector <code>v</code>, if they are present.</p>
+            (.newline? t-first)
+              (subvec body-accum 1)
+            (and (.leading-ws? t-first)
+                 (.newline? t-second))
+              (subvec body-accum 2)
+            :else
+              body-accum))))))</pre></td></tr><tr><td class="docs"><p>Trim a newline string (and a possible whitespace string)
+  from <code>body-accum</code>, if they are present.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- trim-trailing-newline
-  [v]
-  (if (empty? v)
-    v
-    (let [n-last (dec (count v))
-          ^BodyToken t-last (nth v n-last)]
-      (if (= (count v) 1)
+  [body-accum]
+  (if (empty? body-accum)
+    body-accum
+    (let [n-last (dec (count body-accum))
+          ^BodyToken t-last (nth body-accum n-last)]
+      (if (= (count body-accum) 1)
         (if (.newline? t-last)
           []
-          v)
+          body-accum)
         (let [n-prev (dec n-last)
-              ^BodyToken t-prev (nth v n-prev)]
+              ^BodyToken t-prev (nth body-accum n-prev)]
           (cond
-            (.newline? t-last) (subvec v 0 n-last)
-            (and (.leading-ws? t-last) (.newline? t-prev)) (subvec v 0 n-prev)
-            :else v))))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn- trim-whitespace-pred [indent ^BodyToken token]
+            (.newline? t-last)
+              (subvec body-accum 0 n-last)
+            (and (.leading-ws? t-last)
+                 (.newline? t-prev))
+              (subvec body-accum 0 n-prev)
+            :else
+              body-accum))))))</pre></td></tr><tr><td class="docs"><p>The predicate for <code>trim-whitespace</code>.
+  Checks if the contents of the <code>token</code> are leading whitespace
+  and trims them by the value of <code>indent</code>.
+  Returns <code>nil</code>, if the leading whitespace is too small,
+  these will be cleaned up by <code>trim-whitespace</code>.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn- trim-leading-whitespace-pred
+  [indent ^BodyToken token]
   (when-not (.trailing-ws? token)
     (if (.leading-ws? token)
       (when (&gt; (count (.contents token)) indent)
         (make-body-token (subs (.contents token) indent) :leading-ws :true))
-      token)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn- trim-whitespace [v indent]
+      token)))</pre></td></tr><tr><td class="docs"><p>Trims leading <code>indent</code> characters from leading whitespace in <code>body-accum</code></p>
+</td><td class="codes"><pre class="brush: clojure">(defn- trim-leading-whitespace
+  [body-accum indent]
   (filterv #(not (nil? %))
-    (map (partial trim-whitespace-pred indent) v)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn- find-starting-indent [v]
-  ; We need a list of all leading-ws tokens, which are:
-  ; - not last,
-  ; - have something non-whitespace after them.
-  ; Out of those we select the smallest one.
-  (let [ws-candidates (subvec v 0 (dec (count v)))
-        next-elems (subvec v 1)
-        filter-pred (fn [[^BodyToken elem ^BodyToken next-elem]]
-          (and (.leading-ws? elem) (not (.newline? next-elem))))
-        ws-pairs (filter filter-pred
-          (map (fn [a b] [a b]) ws-candidates next-elems))
+    (map (partial trim-leading-whitespace-pred indent) body-accum)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn- zip
+  [seq1 seq2]
+  (map (fn [a b] [a b]) seq1 seq2))</pre></td></tr><tr><td class="docs"><p>Of all leading whitespace tokens, which are:</p>
+
+<ul>
+<li>not last,</li>
+<li><p>have something non-whitespace after them,</p>
+
+<p>we select the smallest one.</p></li>
+</ul>
+</td><td class="codes"><pre class="brush: clojure">(defn- find-starting-indent
+  [body-accum]
+  (let [ws-candidates (subvec body-accum 0 (dec (count body-accum)))
+        next-elems (subvec body-accum 1)
+        ; Filter all leading whitespaces followed by something significant
+        filter-pred
+          (fn [[^BodyToken elem ^BodyToken next-elem]]
+            (and (.leading-ws? elem)
+                 (not (.newline? next-elem))))
+        ws-pairs (filter filter-pred (zip ws-candidates next-elems))
+        ; Extract their lengths
         map-pred
-          (fn [[^BodyToken elem _]] (count (.contents elem)))
+          (fn [[^BodyToken elem _]]
+            (count (.contents elem)))
         ws-lengths (map map-pred ws-pairs)]
     (if (empty? ws-lengths)
       0
-      (reduce min ws-lengths))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn- get-starting-indent [v starting-indent]
-  (if (&lt; (count v) 2)
+      (reduce min ws-lengths))))</pre></td></tr><tr><td class="docs"><p>Returns the common indentation for <code>body-accum</code>
+  that can be trimmed.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn- get-common-indent
+  [body-accum starting-indent]
+  (if (&lt; (count body-accum) 2)
     starting-indent
-    (let [t0 ^BodyToken (nth v 0)
-          t1 ^BodyToken (nth v 1)]
-      (if (or (.newline? t0) (and (.leading-ws? t0) (.newline? t1)))
-        (find-starting-indent v)
-        starting-indent))))</pre></td></tr><tr><td class="docs"><p>If the text accumulator starts with a leading whitespace
+    (let [t0 ^BodyToken (nth body-accum 0)
+          t1 ^BodyToken (nth body-accum 1)]
+      ; If the body part starts from something significant and not
+      ; just whitespace and newline, we take indent of that.
+      ; Otherwise we have to search for it in the whole body-accum.
+      (if (or (.newline? t0)
+              (and (.leading-ws? t0)
+                   (.newline? t1)))
+        (find-starting-indent body-accum)
+        starting-indent))))</pre></td></tr><tr><td class="docs"><p>If <code>body-accum</code> starts with a leading whitespace
   and a non-whitespace string, merges them together.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn- text-merge-starting-whitespace
-  [v]
-  (if (&lt; (count v) 2)
-    v
-    (let [t0 ^BodyToken (nth v 0)
-          t1 ^BodyToken (nth v 1)]
-      (if (and (.leading-ws? t0) (string? (.contents t1)) (not (.newline? t1)))
-        ; FIXME: prepending is O(N). Need to use finger trees.
+</td><td class="codes"><pre class="brush: clojure">(defn- merge-starting-whitespace
+  [body-accum]
+  (if (&lt; (count body-accum) 2)
+    body-accum
+    (let [t0 ^BodyToken (nth body-accum 0)
+          t1 ^BodyToken (nth body-accum 1)]
+      (if (and (.leading-ws? t0)
+               (string? (.contents t1))
+               (not (.newline? t1)))
+        ; FIXME: prepending is O(N).
+        ; Need to use something more optimized.
         (into [(make-body-token (str (.contents t0) (.contents t1)))]
-              (subvec v 2))
-        v))))</pre></td></tr><tr><td class="docs"><p>If the text accumulator ends with a non-whitespace string and
+              (subvec body-accum 2))
+        body-accum))))</pre></td></tr><tr><td class="docs"><p>If <code>body-accum</code> ends with a non-whitespace string and
   a trailing whitespace, merges them together.</p>
-</td><td class="codes"><pre class="brush: clojure">(defn- text-merge-ending-whitespace
-  [v]
-  (if (&lt; (count v) 2)
-    v
-    (let [n-last (dec (count v))
+</td><td class="codes"><pre class="brush: clojure">(defn- merge-ending-whitespace
+  [body-accum]
+  (if (&lt; (count body-accum) 2)
+    body-accum
+    (let [n-last (dec (count body-accum))
           n-prev (dec n-last)
-          t-last ^BodyToken (nth v n-last)
-          t-prev ^BodyToken (nth v n-prev)]
+          t-last ^BodyToken (nth body-accum n-last)
+          t-prev ^BodyToken (nth body-accum n-prev)]
       (if (and (.trailing-ws? t-last)
                (string? (.contents t-prev))
                (not (.newline? t-prev)))
         (conj
-          (subvec v 0 n-prev)
+          (subvec body-accum 0 n-prev)
           (make-body-token (str (.contents t-prev) (.contents t-last))))
-        v))))</pre></td></tr><tr><td class="docs"><p>Removes excessive whitespace according to the following rules:</p>
+        body-accum))))</pre></td></tr><tr><td class="docs"><p>Removes excessive whitespace according to the following rules:</p>
 
 <ul>
 <li>If the vector starts with a <code>\newline</code>, the size of the
-following whitespace is used instead of <code>starting-indent</code>.</li>
+maximum common whitespace is used instead of <code>starting-indent</code>.</li>
 <li>If the vector only contains <code>\newline</code>s and whitespace,
 everything except <code>\newline</code>s is discarded.</li>
 <li>Otherwise if it starts with (maybe some whitespace and) <code>\newline</code>,
@@ -3055,10 +3087,10 @@ or ends with <code>\newline</code> (and maybe some whitespace), these are discar
 characters is truncated by this amount,
 otherwise it is discarded completely.</li>
 </ul>
-</td><td class="codes"><pre class="brush: clojure">(defn- text-trim-whitespace
+</td><td class="codes"><pre class="brush: clojure">(defn- trim-whitespace
   &quot;Removes excessive whitespace according to the following rules:
   - If the vector starts with a `\\newline`, the size of the
-    following whitespace is used instead of `starting-indent`.
+    maximum common whitespace is used instead of `starting-indent`.
   - If the vector only contains `\\newline`s and whitespace,
     everything except `\\newline`s is discarded.
   - Otherwise if it starts with (maybe some whitespace and) `\\newline`,
@@ -3067,39 +3099,64 @@ otherwise it is discarded completely.</li>
   - Any whitespace after a `\\newline` with more than `starting-indent`
     characters is truncated by this amount,
     otherwise it is discarded completely.&quot;
-  [text-accum starting-indent]
-    (let [starting-indent (get-starting-indent text-accum starting-indent)]
+  [body-accum starting-indent]
+    (let [common-indent (get-common-indent body-accum starting-indent)]
       (cond
-        (empty? text-accum) text-accum
-        (whitespace-only? text-accum)
-          (filterv (fn [^BodyToken token] (.newline? token)) text-accum)
-        :else (-&gt; text-accum
-          (trim-whitespace starting-indent)
+        (empty? body-accum) body-accum
+        (whitespace-only? body-accum)
+          (filterv (fn [^BodyToken token] (.newline? token)) body-accum)
+        :else (-&gt; body-accum
+          (trim-leading-whitespace common-indent)
           trim-leading-newline
-          trim-trailing-newline))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn text-postprocess
-  [text-accum starting-indent]
-  (-&gt; text-accum
-    text-merge-starting-whitespace
-    text-merge-ending-whitespace
-    (text-trim-whitespace starting-indent)
-    text-accum-finalize))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.reader" name="scribble.reader"><h1 class="project-name">scribble.reader</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs">
+          trim-trailing-newline))))</pre></td></tr><tr><td class="docs"><p>Postprocess <code>body-accum</code> and return the final body part container.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn body-postprocess
+  [body-accum starting-indent]
+  (-&gt; body-accum
+    merge-starting-whitespace
+    merge-ending-whitespace
+    (trim-whitespace starting-indent)
+    body-accum-finalize))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.reader" name="scribble.reader"><h1 class="project-name">scribble.reader</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Contains the main reader macro and readers for nested special forms.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns scribble.reader
-  (:use [clojure.tools.reader.reader-types :only [reader-error]])
+  (:use [clojure.set :only [intersection]])
   (:require [chiara.reader.utils :as reader-methods]
             [scribble.types :refer :all]
             [scribble.postprocess :refer :all]
             [scribble.settings :refer :all])
-  (:import [scribble.settings Settings]))</pre></td></tr><tr><td class="docs">
+  (:import [scribble.settings Settings]))</pre></td></tr><tr><td class="docs"><p>Throws an ExceptionInfo with the given message.
+  If <code>reader</code> provides line/column metadata,
+  it will be included in the exception.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn- reader-error
+  [reader &amp; msg]
+  (throw
+    (ex-info
+      (clojure.string/join msg)
+      (merge {:type :reader-exception}
+             (when-let [[l c] (reader-methods/reader-position reader)]
+               {:line l :column c})))))</pre></td></tr><tr><td class="docs"><p>Creates beginning and ending here-string markers
+  for usage in the body part reader.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- here-markers
   [here-str]
   (if (nil? here-str)
     [[] []]
-    [
-      (str \space here-str)
-      (str
-        \space
-        (clojure.string/join (inverse-vec (vec here-str))))]))</pre></td></tr><tr><td class="docs">
+    ; Additional symbols allow us to avoid `dec`s in comparisons.
+    [(str \space here-str)
+     (str \space (inverse-str here-str))]))</pre></td></tr><tr><td class="docs"><p>The following two functions could be joined into one,
+but that would require creation and destructuring of a vector
+<code>[body-accum str-accum]</code>, and which noticeably affects
+<code>read-body</code> performance.</p>
+</td><td class="codes"></td></tr><tr><td class="docs"><p>Updates a body part accumulator
+  when a non-whitespace character is encountered</p>
+</td><td class="codes"><pre class="brush: clojure">(defn- dump-nonws-char-body
+  [body-accum str-accum leading-ws]
+  (if leading-ws
+    (dump-leading-ws body-accum str-accum)
+    body-accum))</pre></td></tr><tr><td class="docs"><p>Updates a string accumulator
+  when a non-whitespace character is encountered</p>
+</td><td class="codes"><pre class="brush: clojure">(defn- dump-nonws-char-str
+  [str-accum c leading-ws]
+  (if leading-ws
+    (make-str-accum c)
+    (str-accum-push str-accum c)))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(declare read-entry)</pre></td></tr><tr><td class="docs"><p>Returns a vector of strings and nested forms.
   The strings are separated as
   [leading whitespace, contents, trailing whitespace, newline]
@@ -3107,155 +3164,186 @@ otherwise it is discarded completely.</li>
 </td><td class="codes"><pre class="brush: clojure">(defn- read-body
   [^Settings settings reader here-str]
   (let [[here-start here-end] (here-markers here-str)
-        here-marker-len (count here-start)
+        here-marker-len (int (count here-start))
         escaped (not (nil? here-str))
         entry-char (.entry-char settings)
         body-start-char (.body-start-char settings)
         body-end-char (.body-end-char settings)
         escape-start-char (.escape-start-char settings)
         escape-end-char (.escape-end-char settings)]
-  (loop [body-accum []
-         str-accum (make-str-accum)
-         ; FIXME: using a custom type will be faster
-         state {:leading-ws true
-                :brace-level 0
-                :here-str-pos 0}]
-    (let [c (reader-methods/read-1 reader)]
-      (cond
-        (and escaped
-             (= c escape-end-char)
-             (= (- (:here-str-pos state)) here-marker-len))
-          (if (zero? (:brace-level state))
-            (dump-string body-accum (str-accum-pop str-accum here-marker-len))
-            (recur body-accum (str-accum-push str-accum c)
-              (assoc state
-                :brace-level (dec (:brace-level state))
-                :here-str-pos 0)))
-        (and escaped (= c escape-start-char))
-          (let [[body-accum str-accum]
-                  (if (:leading-ws state)
-                    [(dump-leading-ws body-accum str-accum) [c]]
-                    [body-accum (str-accum-push str-accum c)])]
-              (recur body-accum str-accum
-                (assoc state
-                  :here-str-pos 1
-                  :leading-ws false)))
-        (and escaped (= c body-end-char))
-          (let [[body-accum str-accum]
-                  (if (:leading-ws state)
-                    [(dump-leading-ws body-accum str-accum) [c]]
-                    [body-accum (str-accum-push str-accum c)])]
-              (recur body-accum str-accum
-                (assoc state
-                  :here-str-pos -1
-                  :leading-ws false)))
-        (and escaped
-             (= c body-start-char)
-             (= (:here-str-pos state) here-marker-len))
-          (recur body-accum (str-accum-push str-accum c)
-            (assoc state :here-str-pos 0
-                         :brace-level (inc (:brace-level state))))
-        (and escaped
-             (= c entry-char)
-             (= (:here-str-pos state) here-marker-len))
-          (let [nested-form (read-entry settings reader c)
-                str-accum (str-accum-pop str-accum here-marker-len)
-                [body-accum str-accum]
-                  (if (identical? nested-form reader)
-                    [body-accum str-accum]
-                    (dump-nested-form
-                      body-accum str-accum nested-form (:leading-ws state)))]
-            (recur body-accum str-accum
-              (assoc state :here-str-pos 0)))
-        (and escaped
-             (pos? (:here-str-pos state))
-             (&lt; (:here-str-pos state) here-marker-len)
-             (= c (nth here-start (:here-str-pos state))))
-          (recur body-accum (str-accum-push str-accum c)
-            (update-in state [:here-str-pos] inc))
-        (and escaped
-             (neg? (:here-str-pos state))
-             (&lt; (- (:here-str-pos state)) here-marker-len)
-             (= c (nth here-end (- (:here-str-pos state)))))
-          (recur body-accum (str-accum-push str-accum c)
-            (update-in state [:here-str-pos] dec))
-        ; Starting body part symbol
-        ; We allow them to appear un-escaped if they are balanced
-        (and (not escaped) (= c body-start-char) (:leading-ws state))
-          (recur (dump-leading-ws body-accum str-accum) [c]
-            (assoc state :leading-ws false
-                         :brace-level (inc (:brace-level state))))
-        (and (not escaped) (= c body-start-char))
-          (recur body-accum (str-accum-push str-accum c)
-            (update-in state [:brace-level] inc))
-        (and (not escaped)
-             (= c body-end-char)
-             (zero? (:brace-level state)))
-          (if (:leading-ws state)
-            (dump-leading-ws body-accum str-accum)
-            (dump-string body-accum str-accum))
-        (and (not escaped) (= c body-end-char))
-          (if (:leading-ws state)
-            (recur (dump-leading-ws body-accum str-accum) [c]
-              (assoc state :leading-ws false
-                           :brace-level (dec (:brace-level state))))
-            (recur body-accum (str-accum-push str-accum c)
-              (update-in state [:brace-level] dec)))
-        (and (not escaped) (= c entry-char))
-          (let [nested-form (read-entry settings reader c)
-                [body-accum str-accum]
-                  (if (identical? nested-form reader)
-                    [body-accum str-accum]
-                    (dump-nested-form
-                      body-accum str-accum nested-form (:leading-ws state)))]
-            (recur body-accum str-accum
-              (assoc state :leading-ws false)))
-        ; unexpected EOF
-        (nil? c)
-          (reader-error reader &quot;Unexpected EOF while reading a body part&quot;)
-        ; newline encountered: dump accumulator,
-        ; turn the leading whitespace mode on
-        (= c \newline)
-          (let [body-accum
-                 (-&gt; body-accum
-                   (dump-string str-accum)
-                   append-newline)]
+    (loop [body-accum (make-body-accum)
+           str-accum (make-str-accum)
+           ; Indicates the leading whitespace reading mode.
+           leading-ws true
+           ; Using privitive integers gets us some speed-up.
+           brace-level (int 0)
+           ; If the position is positive, we are reading the starting marker,
+           ; if it is negative, we are reading the ending marker.
+           here-str-pos (int 0)]
+      (let [c (reader-methods/read-1 reader)]
+        (cond
+          ; Catches the body part ending character
+          ; (or the escape ending one, if we are in escaped mode)
+          (or (and escaped
+                   (= c escape-end-char)
+                   (== (- here-str-pos) here-marker-len))
+              (and (not escaped)
+                   (= c body-end-char)))
+            (if (zero? brace-level)
+              (if leading-ws
+                (dump-leading-ws body-accum str-accum)
+                (dump-string
+                  body-accum
+                  (str-accum-pop str-accum here-marker-len)))
+              (recur
+                (dump-nonws-char-body body-accum str-accum leading-ws)
+                (dump-nonws-char-str str-accum c leading-ws)
+                false
+                (dec brace-level)
+                (int 0)))
+          ; Catches the body part starting character
+          ; (or the escape starting one, if we are in escaped mode)
+          (or (and escaped
+                   (= c escape-start-char))
+              (and (= c body-start-char)
+                   (== here-str-pos here-marker-len)))
+            (recur
+              (dump-nonws-char-body body-accum str-accum leading-ws)
+              (dump-nonws-char-str str-accum c leading-ws)
+              false
+              ; The body-start-char will be at the end of the here-string
+              ; sequence in escaped mode, so we can safely increase
+              ; the brace level regardless of `escaped`.
+              (if (= c body-start-char)
+                (inc brace-level)
+                brace-level)
+              ; If we are in escaped mode and caught the escape starting,
+              ; just increase the here-string position.
+              (if (= c escape-start-char)
+                (int 1)
+                (int 0)))
+          ; In escaped mode, body-end-char only means that
+          ; we should start comparing the following characters with
+          ; the ending here-string marker.
+          (and escaped
+               (= c body-end-char))
+            (recur
+              (dump-nonws-char-body body-accum str-accum leading-ws)
+              (dump-nonws-char-str str-accum c leading-ws)
+              false
+              brace-level
+              (int -1))
+          ; Entry character encountered,
+          ; and we are at the end of the starting here-string marker.
+          (and (= c entry-char)
+               (== here-str-pos here-marker-len))
+            (let [nested-form (read-entry settings reader c)
+                  ; Pop here-string marker from the accumulator
+                  str-accum (str-accum-pop str-accum here-marker-len)
+                  [body-accum str-accum]
+                    ; Check if the nested form was a comment
+                    (if (identical? nested-form reader)
+                      [body-accum str-accum]
+                      (dump-nested-form
+                        body-accum str-accum nested-form leading-ws))]
+              (recur
+                body-accum
+                str-accum
+                false
+                brace-level
+                (int 0)))
+          ; Reading the starting here-string marker,
+          ; and the current character is correct.
+          (and (pos? here-str-pos)
+               (&lt; here-str-pos here-marker-len)
+               (= c (nth here-start here-str-pos)))
             (recur
               body-accum
-              (make-str-accum)
-              (assoc state :leading-ws true :here-str-pos 0)))
-        ; in leading whitespace mode, whitespace character encountered
-        (and (whitespace? c) (:leading-ws state))
-          (recur
-            body-accum
-            (str-accum-push str-accum c)
-            (assoc state :leading-ws true :here-str-pos 0))
-        (:leading-ws state)
-          (recur (dump-leading-ws body-accum str-accum) [c]
-            (assoc state :leading-ws false :here-str-pos 0))
-        ; reading characters
-        :else (recur body-accum (str-accum-push str-accum c)
-          (assoc state :here-str-pos 0)))))))</pre></td></tr><tr><td class="docs">
+              (str-accum-push str-accum c)
+              leading-ws
+              brace-level
+              (inc here-str-pos))
+          ; Reading the ending here-string marker,
+          ; and the current character is correct.
+          (and (neg? here-str-pos)
+               (&lt; (- here-str-pos) here-marker-len)
+               (= c (nth here-end (- here-str-pos))))
+            (recur
+              body-accum
+              (str-accum-push str-accum c)
+              leading-ws
+              brace-level
+              (dec here-str-pos))
+          ; Unexpected EOF
+          (nil? c)
+            (reader-error reader &quot;Unexpected EOF while reading a body part&quot;)
+          ; Newline encountered: dump accumulator,
+          ; turn the leading whitespace mode on
+          (= c \newline)
+            (let [body-accum
+                   (-&gt; body-accum
+                     (dump-string str-accum)
+                     push-newline)]
+              (recur
+                body-accum
+                (make-str-accum)
+                true
+                brace-level
+                (int 0)))
+          ; In leading whitespace mode, a whitespace character encountered
+          (and (whitespace? c) leading-ws)
+            (recur
+              body-accum
+              (str-accum-push str-accum c)
+              true
+              brace-level
+              (int 0))
+          ; A normal character or a whitespace character
+          ; out of the leading whitespace mode
+          :else
+            (recur
+              (dump-nonws-char-body body-accum str-accum leading-ws)
+              (dump-nonws-char-str str-accum c leading-ws)
+              false
+              brace-level
+              (int 0)))))))</pre></td></tr><tr><td class="docs"><p>Checks that <code>here-str</code> does not contain escape-start/end chars,
+  entry char, or body-end char (it does not contain the body-start char
+  because of the way it was read).
+  This makes it easier to watch for it when reading the body part.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn- validate-here-str
+  [^Settings settings reader here-str]
+  (if (nil? here-str)
+    here-str
+    (let [prohibited-chars (set [(.entry-char settings)
+                                 (.body-end-char settings)
+                                 (.escape-start-char settings)
+                                 (.escape-end-char settings)])
+          here-str-chars (set here-str)]
+      (if (empty? (intersection prohibited-chars here-str-chars))
+        here-str
+        (reader-error reader &quot;Here-string contains invalid characters&quot;)))))</pre></td></tr><tr><td class="docs"><p>Reads a body part, escaped by <code>here-str</code>
+  (i.e. looking like <code>`&lt;here-str&gt;{text here}&lt;inverse-here-str&gt;`</code>).
+  If <code>here-str</code> is <code>nil</code>, the body part is considered to be non-escaped.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- read-body-part
   [^Settings settings reader here-str]
-  ; FIXME: check that here-str does not contain escape-start/end chars,
-  ; entry char, or body-start/end chars
-  (let [[_ c] (reader-methods/reader-position reader)
+  (let [here-str (validate-here-str settings reader here-str)
+        [_ c] (reader-methods/reader-position reader)
         column (if (nil? c) 0 c)
         body-accum (read-body settings reader here-str)
-        body-part (text-postprocess body-accum column)]
-    body-part))</pre></td></tr><tr><td class="docs">
+        body-part (body-postprocess body-accum column)]
+    body-part))</pre></td></tr><tr><td class="docs"><p>Reads and returns a string until (and not including) <code>delim</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- read-until
-  [reader stop-condition?]
+  [reader delim]
   (loop [str-accum (make-str-accum)]
     (let [c (reader-methods/read-1 reader)]
       (cond
         (nil? c) (str-accum-finalize str-accum)
-        (stop-condition? c)
+        (= delim c)
           (do
             (reader-methods/unread reader c)
             (str-accum-finalize str-accum))
-        :else (recur (str-accum-push str-accum c))))))</pre></td></tr><tr><td class="docs">
+        :else (recur (str-accum-push str-accum c))))))</pre></td></tr><tr><td class="docs"><p>Reads datum and body parts of the form,
+  until EOF or whitespace is encountered.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- read-parts
   [^Settings settings reader]
   (let [body-start-char (.body-start-char settings)
@@ -3270,24 +3358,32 @@ otherwise it is discarded completely.</li>
            forms-present false]
       (let [c (reader-methods/read-1 reader)]
         (cond
+          ; Simple escaped string, e.g. the one starting with just
+          ; escape start char + body start char
           (and (= c escape-start-char)
                (= (reader-methods/peek reader) body-start-char))
             (do
               (reader-methods/read-1 reader)
               (recur
-                (conj forms-read (read-body-part settings reader ))
+                (conj forms-read (read-body-part settings reader &quot;&quot;))
                 true))
+          ; An escaped string with non-empty here-string
           (= c escape-start-char)
-            (let [s (read-until reader #(= % body-start-char))
-                  _ (reader-methods/read-1 reader)
-                  body-part (read-body-part settings reader s)]
-              (recur
-                (conj forms-read body-part)
-                true))
+            (let [here-str (read-until reader body-start-char)
+                  next-c (reader-methods/read-1 reader)]
+              (if (nil? next-c)
+                (reader-error reader
+                  &quot;Unexpected EOF while reading a here-string&quot;)
+                (let [body-part (read-body-part settings reader here-str)]
+                  (recur
+                    (conj forms-read body-part)
+                    true))))
+          ; A simple body part
           (= c body-start-char)
             (recur
               (conj forms-read (read-body-part settings reader nil))
               true)
+          ; A datum part
           (= c datum-start-char)
             (let [forms (reader-methods/read-delimited-list
                            datum-end-char reader)]
@@ -3341,11 +3437,14 @@ otherwise it is discarded completely.</li>
         comment-char (.comment-char settings)
         c (reader-methods/read-1 reader)]
     (cond
+      ; No command, body or datum starts right away.
+      ; Pass the execution to the parts reader.
       (or (= c body-start-char)
           (= c datum-start-char))
         (do
           (reader-methods/unread reader c)
           (read-parts settings reader))
+      ; A comment form
       (= c comment-char)
         (let [next-c (reader-methods/peek reader)]
           (condp = next-c
@@ -3361,10 +3460,13 @@ otherwise it is discarded completely.</li>
       (nil? c)
         (reader-error reader
           &quot;Unexpected EOF at the start of a Scribble form&quot;)
+      ; An escaped (spliced) form, or an escaped string.
       (= c escape-start-char)
         (let [next-c (reader-methods/peek reader)]
           (if (= next-c escape-start-char)
             (read-parts settings reader)
+            ; If it is a spliced form, mark it with metadata,
+            ; so that it could be spliced in the parent reader.
             (mark-for-splice
               (reader-methods/read-delimited-list
                 escape-end-char reader))))
@@ -3378,10 +3480,9 @@ otherwise it is discarded completely.</li>
               (empty? forms) (list command)
               :else (cons command forms)))))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.settings" name="scribble.settings"><h1 class="project-name">scribble.settings</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Contains functions that allow you to tune the characters used for
 different purposes in the reader.</p>
-</td><td class="codes"><pre class="brush: clojure">(ns scribble.settings)</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn whitespace?
-  [c]
-  (or (= c \space) (= c \tab)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(ns scribble.settings
+  (:use [clojure.math.combinatorics :only [combinations]]
+        [clojure.set :only [intersection]]))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(deftype Settings [
   ^Character entry-char
   ^Character body-start-char
@@ -3390,10 +3491,42 @@ different purposes in the reader.</p>
   ^Character datum-end-char
   ^Character escape-start-char
   ^Character escape-end-char
-  ^Character comment-char])</pre></td></tr><tr><td class="docs"><p>Checks the reader settings for conflicts.</p>
+  ^Character comment-char])</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn- assert-not-intersect
+  [set1 set2 message]
+  (when (seq (intersection set1 set2))
+    (throw (ex-info message {:set1 set1 :set2 set2}))))</pre></td></tr><tr><td class="docs"><p>Checks the reader settings for conflicts.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- validate-settings
   [^Settings settings]
-  settings)</pre></td></tr><tr><td class="docs"><p>Creates a reader settings structure,
+  (let [entry-char (.entry-char settings)
+        body-start-char (.body-start-char settings)
+        body-end-char (.body-end-char settings)
+        datum-start-char (.datum-start-char settings)
+        datum-end-char (.datum-end-char settings)
+        escape-start-char (.escape-start-char settings)
+        escape-end-char (.escape-end-char settings)
+        comment-char (.comment-char settings)
+        all-chars (set [entry-char
+                        body-start-char
+                        body-end-char
+                        datum-start-char
+                        datum-end-char
+                        escape-start-char
+                        escape-end-char
+                        comment-char])
+        entry-chars #{entry-char}
+        body-chars (set [body-start-char body-end-char])
+        datum-chars (set [datum-start-char datum-end-char])
+        escape-chars (set [escape-start-char escape-end-char])
+        comment-chars #{comment-char}
+        char-sets [entry-chars body-chars datum-chars
+                   escape-chars comment-chars]]
+    (assert-not-intersect all-chars #{\space \tab \newline}
+      &quot;None of the characters can be whitespace or newlines&quot;)
+    (doseq [[set1 set2] (combinations char-sets 2)]
+      (assert-not-intersect set1 set2
+        &quot;Characters used for different purposes must be different&quot;))
+    settings))</pre></td></tr><tr><td class="docs"><p>Creates a reader settings structure,
   and checks the characters used for conflicts.
   Parameters:</p>
 
@@ -3441,6 +3574,9 @@ characters in other groups.</p></li>
                escape-end-char
                comment-char)))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(def default-settings (make-settings \@ \{ \} \[ \] \` \` \;))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn whitespace?
+  [c]
+  (or (= c \space) (= c \tab)))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn entry-char
   [^Settings settings]
   (.entry-char settings))</pre></td></tr><tr><td class="docs">
@@ -3454,9 +3590,10 @@ characters in other groups.</p></li>
     \&lt; \&gt;
     \&gt; \&lt;
     c))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn inverse-vec
-  [v]
-  (vec (map inverse-char (reverse v))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.types" name="scribble.types"><h1 class="project-name">scribble.types</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Contains methods for the string accumulator, the body part accumulator,
+</td><td class="codes"><pre class="brush: clojure">(defn inverse-str
+  [s]
+  (clojure.string/join
+    (mapv inverse-char (reverse s))))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.types" name="scribble.types"><h1 class="project-name">scribble.types</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Contains methods for the string accumulator, the body part accumulator,
 and the body part token.
 This way the underlying data structures can be changed easily if needed,
 and the complexity requirements can be assessed.</p>
@@ -3466,8 +3603,10 @@ and the complexity requirements can be assessed.</p>
 from the stream.</p>
 </td><td class="codes"></td></tr><tr><td class="docs"><p>Creates an empty string accumulator.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn make-str-accum
-  []
-  [])</pre></td></tr><tr><td class="docs"><p>Removes the last <code>n</code> characters from <code>str-accum</code>.</p>
+  ([]
+    [])
+  ([c]
+    [c]))</pre></td></tr><tr><td class="docs"><p>Removes the last <code>n</code> characters from <code>str-accum</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn str-accum-pop
   [str-accum n]
   (if (zero? n)
@@ -3505,40 +3644,48 @@ but would require <code>O(n)</code> time to obtain during the postprocessing.</p
               (boolean leading-ws)
               (boolean trailing-ws)))</pre></td></tr><tr><td class="docs"><h1>Body part accumulator methods</h1>
 
-<p>Text accumulator collects <code>BodyToken</code>s when a body part is read.</p>
+<p>Body part accumulator is used to collect <code>BodyToken</code>s
+while reading the body part.</p>
 </td><td class="codes"></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn- text-accum-append
-  [text-accum s]
-  (conj text-accum s))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn text-accum-finalize
-  [text-accum]
+</td><td class="codes"><pre class="brush: clojure">(defn make-body-accum
+  []
+  [])</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn- body-accum-push
+  [body-accum s]
+  (conj body-accum s))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn body-accum-finalize
+  [body-accum]
   (mapv
     (fn [^BodyToken token] (.contents token))
-    text-accum))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn- append-trailing-ws
-  [text-accum s]
+    body-accum))</pre></td></tr><tr><td class="docs"><h1>Body and string accumulator helpers</h1>
+
+<p>Auxiliary functions for different cases of updating
+body and/or string accumulators.</p>
+</td><td class="codes"></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn- push-trailing-ws
+  [body-accum s]
   (if (empty? s)
-    text-accum
-    (text-accum-append text-accum (make-body-token s :trailing-ws true))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn- append-string
-  [text-accum s]
+    body-accum
+    (body-accum-push body-accum (make-body-token s :trailing-ws true))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn- push-string
+  [body-accum s]
   (if (empty? s)
-    text-accum
-    (text-accum-append text-accum (make-body-token s))))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn- append-form
-  [text-accum f]
-  (text-accum-append text-accum (make-body-token f)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(defn append-newline
-  [text-accum]
-  (text-accum-append text-accum (make-body-token &quot;\n&quot; :newline true)))</pre></td></tr><tr><td class="docs">
+    body-accum
+    (body-accum-push body-accum (make-body-token s))))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn- push-form
+  [body-accum f]
+  (body-accum-push body-accum (make-body-token f)))</pre></td></tr><tr><td class="docs">
+</td><td class="codes"><pre class="brush: clojure">(defn push-newline
+  [body-accum]
+  (body-accum-push body-accum (make-body-token &quot;\n&quot; :newline true)))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn dump-leading-ws
-  [text-accum str-accum]
-  (text-accum-append
-    text-accum
+  [body-accum str-accum]
+  (body-accum-push
+    body-accum
     (make-body-token (str-accum-finalize str-accum) :leading-ws true)))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn- dump-string-verbatim
-  [text-accum str-accum]
-  (append-string text-accum (str-accum-finalize str-accum)))</pre></td></tr><tr><td class="docs"><p>Splits the string into two strings containing the trailing whitespace
+  [body-accum str-accum]
+  (push-string body-accum (str-accum-finalize str-accum)))</pre></td></tr><tr><td class="docs"><p>Splits the string into two strings containing the trailing whitespace
   and the remaining part.
   Returns a vector <code>[main-part trailing-ws]</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- split-trimr
@@ -3549,39 +3696,42 @@ but would require <code>O(n)</code> time to obtain during the postprocessing.</p
     (if (= count-full count-trimmed)
       [s &quot;&quot;]
       [trimmed-s (subs s count-trimmed)])))</pre></td></tr><tr><td class="docs"><p>Joins <code>str-accum</code> in a string and attaches it to the end of
-  <code>text-accum</code>, returning the resulting vector.
-  If <code>str-accum</code> is empty, <code>vec-accum</code> is returned unchanged.
+  <code>body-accum</code>, returning the resulting vector.
+  If <code>str-accum</code> is empty, <code>body-accum</code> is returned unchanged.
   If <code>separate-trailing-ws</code> is <code>true</code>, the string constructed from <code>str-accum</code>
   is split into the main part and the trailing whitespace part
-  before the attachment to <code>vec-accum</code>.</p>
+  before the attachment to <code>body-accum</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn dump-string
-  [text-accum str-accum]
+  [body-accum str-accum]
   (let [[main-part trailing-ws] (split-trimr (str-accum-finalize str-accum))]
-    (-&gt; text-accum
-      (append-string main-part)
-      (append-trailing-ws trailing-ws))))</pre></td></tr><tr><td class="docs">
+    (-&gt; body-accum
+      (push-string main-part)
+      (push-trailing-ws trailing-ws))))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn mark-for-splice
   [l]
   (with-meta l {::splice true}))</pre></td></tr><tr><td class="docs"><p>Need to return <code>str-accum</code> because in case of the comment
   we do not want to break the string.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn dump-nested-form
-  [text-accum str-accum nested-form leading-ws]
+  [body-accum str-accum nested-form leading-ws]
   (cond
     leading-ws
       (dump-nested-form
-        (dump-leading-ws text-accum str-accum) [] nested-form false)
+        (dump-leading-ws body-accum str-accum)
+        (make-str-accum)
+        nested-form
+        false)
     ; it was a string: special case, append it to the accumulator
     (string? nested-form)
       ; FIXME: prepending is O(n)
-      [text-accum (vec (concat str-accum nested-form))]
+      [body-accum (vec (concat str-accum nested-form))]
     ; an actual form
     :else
-      (let [text-accum-with-str (dump-string-verbatim text-accum str-accum)
-            text-accum
+      (let [body-accum-with-str (dump-string-verbatim body-accum str-accum)
+            body-accum
               (if (::splice (meta nested-form))
-                (reduce append-form text-accum-with-str nested-form)
-                (append-form text-accum-with-str nested-form))]
-        [text-accum []])))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr></table><div class="footer">Generated by <a href="https://github.com/fogus/marginalia">Marginalia</a>.&nbsp;&nbsp;Syntax highlighting provided by Alex Gorbatchev's <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a>marginalia.html$floating_toc_html@5e73e0d</div><script type="text/javascript">SyntaxHighlighter.defaults['gutter'] = false;
+                (reduce push-form body-accum-with-str nested-form)
+                (push-form body-accum-with-str nested-form))]
+        [body-accum (make-str-accum)])))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr></table><div class="footer">Generated by <a href="https://github.com/fogus/marginalia">Marginalia</a>.&nbsp;&nbsp;Syntax highlighting provided by Alex Gorbatchev's <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a>marginalia.html$floating_toc_html@31672113</div><script type="text/javascript">SyntaxHighlighter.defaults['gutter'] = false;
 SyntaxHighlighter.all();
 
 // hackity hack
