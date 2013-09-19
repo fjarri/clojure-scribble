@@ -68,7 +68,7 @@
         body-end-char (.body-end-char settings)
         escape-start-char (.escape-start-char settings)
         escape-end-char (.escape-end-char settings)]
-    (loop [body-accum []
+    (loop [body-accum (make-body-accum)
            str-accum (make-str-accum)
            ; Indicates the leading whitespace reading mode.
            leading-ws true
@@ -188,7 +188,7 @@
             (let [body-accum
                    (-> body-accum
                      (dump-string str-accum)
-                     append-newline)]
+                     push-newline)]
               (recur
                 body-accum
                 (make-str-accum)

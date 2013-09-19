@@ -70,7 +70,11 @@
 ;; Body part accumulator is used to collect `BodyToken`s
 ;; while reading the body part.
 
-(defn- body-accum-append
+(defn make-body-accum
+  []
+  [])
+
+(defn- body-accum-push
   [body-accum s]
   (conj body-accum s))
 
@@ -81,35 +85,40 @@
     body-accum))
 
 
-(defn- append-trailing-ws
+;; # Body and string accumulator helpers
+;;
+;; Auxiliary functions for different cases of updating
+;; body and/or string accumulators.
+
+(defn- push-trailing-ws
   [body-accum s]
   (if (empty? s)
     body-accum
-    (body-accum-append body-accum (make-body-token s :trailing-ws true))))
+    (body-accum-push body-accum (make-body-token s :trailing-ws true))))
 
-(defn- append-string
+(defn- push-string
   [body-accum s]
   (if (empty? s)
     body-accum
-    (body-accum-append body-accum (make-body-token s))))
+    (body-accum-push body-accum (make-body-token s))))
 
-(defn- append-form
+(defn- push-form
   [body-accum f]
-  (body-accum-append body-accum (make-body-token f)))
+  (body-accum-push body-accum (make-body-token f)))
 
-(defn append-newline
+(defn push-newline
   [body-accum]
-  (body-accum-append body-accum (make-body-token "\n" :newline true)))
+  (body-accum-push body-accum (make-body-token "\n" :newline true)))
 
 (defn dump-leading-ws
   [body-accum str-accum]
-  (body-accum-append
+  (body-accum-push
     body-accum
     (make-body-token (str-accum-finalize str-accum) :leading-ws true)))
 
 (defn- dump-string-verbatim
   [body-accum str-accum]
-  (append-string body-accum (str-accum-finalize str-accum)))
+  (push-string body-accum (str-accum-finalize str-accum)))
 
 (defn- split-trimr
   "Splits the string into two strings containing the trailing whitespace
@@ -126,15 +135,15 @@
 (defn dump-string
   "Joins `str-accum` in a string and attaches it to the end of
   `body-accum`, returning the resulting vector.
-  If `str-accum` is empty, `vec-accum` is returned unchanged.
+  If `str-accum` is empty, `body-accum` is returned unchanged.
   If `separate-trailing-ws` is `true`, the string constructed from `str-accum`
   is split into the main part and the trailing whitespace part
-  before the attachment to `vec-accum`."
+  before the attachment to `body-accum`."
   [body-accum str-accum]
   (let [[main-part trailing-ws] (split-trimr (str-accum-finalize str-accum))]
     (-> body-accum
-      (append-string main-part)
-      (append-trailing-ws trailing-ws))))
+      (push-string main-part)
+      (push-trailing-ws trailing-ws))))
 
 (defn mark-for-splice
   [l]
@@ -147,7 +156,10 @@
   (cond
     leading-ws
       (dump-nested-form
-        (dump-leading-ws body-accum str-accum) [] nested-form false)
+        (dump-leading-ws body-accum str-accum)
+        (make-str-accum)
+        nested-form
+        false)
 
     ; it was a string: special case, append it to the accumulator
     (string? nested-form)
@@ -159,6 +171,6 @@
       (let [body-accum-with-str (dump-string-verbatim body-accum str-accum)
             body-accum
               (if (::splice (meta nested-form))
-                (reduce append-form body-accum-with-str nested-form)
-                (append-form body-accum-with-str nested-form))]
-        [body-accum []])))
+                (reduce push-form body-accum-with-str nested-form)
+                (push-form body-accum-with-str nested-form))]
+        [body-accum (make-str-accum)])))
