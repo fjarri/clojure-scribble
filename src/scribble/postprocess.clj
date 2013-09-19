@@ -13,54 +13,54 @@
     (.trailing-ws? token)))
 
 (defn- whitespace-only?
-  "Returns `true` if `text-accum` contains only `\\newline``s
+  "Returns `true` if `body-accum` contains only `\\newline``s
   and strings of whitespace characters."
-  [text-accum]
-  (every? whitespace-or-newline? text-accum))
+  [body-accum]
+  (every? whitespace-or-newline? body-accum))
 
 (defn- trim-leading-newline
   "Trim (a possible whitespace string and) a newline string
-  from `text-accum`, if they are present."
-  [text-accum]
-  (if (empty? text-accum)
-    text-accum
-    (let [^BodyToken t-first (nth text-accum 0)]
-      (if (= (count text-accum) 1)
+  from `body-accum`, if they are present."
+  [body-accum]
+  (if (empty? body-accum)
+    body-accum
+    (let [^BodyToken t-first (nth body-accum 0)]
+      (if (= (count body-accum) 1)
         (if (.newline? t-first)
           []
-          text-accum)
-        (let [^BodyToken t-second (nth text-accum 1)]
+          body-accum)
+        (let [^BodyToken t-second (nth body-accum 1)]
           (cond
             (.newline? t-first)
-              (subvec text-accum 1)
+              (subvec body-accum 1)
             (and (.leading-ws? t-first)
                  (.newline? t-second))
-              (subvec text-accum 2)
+              (subvec body-accum 2)
             :else
-              text-accum))))))
+              body-accum))))))
 
 (defn- trim-trailing-newline
   "Trim a newline string (and a possible whitespace string)
-  from `text-accum`, if they are present."
-  [text-accum]
-  (if (empty? text-accum)
-    text-accum
-    (let [n-last (dec (count text-accum))
-          ^BodyToken t-last (nth text-accum n-last)]
-      (if (= (count text-accum) 1)
+  from `body-accum`, if they are present."
+  [body-accum]
+  (if (empty? body-accum)
+    body-accum
+    (let [n-last (dec (count body-accum))
+          ^BodyToken t-last (nth body-accum n-last)]
+      (if (= (count body-accum) 1)
         (if (.newline? t-last)
           []
-          text-accum)
+          body-accum)
         (let [n-prev (dec n-last)
-              ^BodyToken t-prev (nth text-accum n-prev)]
+              ^BodyToken t-prev (nth body-accum n-prev)]
           (cond
             (.newline? t-last)
-              (subvec text-accum 0 n-last)
+              (subvec body-accum 0 n-last)
             (and (.leading-ws? t-last)
                  (.newline? t-prev))
-              (subvec text-accum 0 n-prev)
+              (subvec body-accum 0 n-prev)
             :else
-              text-accum))))))
+              body-accum))))))
 
 (defn- trim-whitespace-pred
   "The predicate for `trim-whitespace`.
@@ -76,10 +76,10 @@
       token)))
 
 (defn- trim-whitespace
-  "Trims leading `indent` characters from leading whitespace in `text-accum`"
-  [text-accum indent]
+  "Trims leading `indent` characters from leading whitespace in `body-accum`"
+  [body-accum indent]
   (filterv #(not (nil? %))
-    (map (partial trim-whitespace-pred indent) text-accum)))
+    (map (partial trim-whitespace-pred indent) body-accum)))
 
 (defn- zip
   [seq1 seq2]
@@ -92,9 +92,9 @@
    - have something non-whitespace after them,
 
   we select the smallest one."
-  [text-accum]
-  (let [ws-candidates (subvec text-accum 0 (dec (count text-accum)))
-        next-elems (subvec text-accum 1)
+  [body-accum]
+  (let [ws-candidates (subvec body-accum 0 (dec (count body-accum)))
+        next-elems (subvec body-accum 1)
 
         ; Filter all leading whitespaces followed by something significant
         filter-pred
@@ -113,58 +113,58 @@
       (reduce min ws-lengths))))
 
 (defn- get-common-indent
-  "Returns the common indentation for `text-accum`
+  "Returns the common indentation for `body-accum`
   that can be trimmed."
-  [text-accum starting-indent]
-  (if (< (count text-accum) 2)
+  [body-accum starting-indent]
+  (if (< (count body-accum) 2)
     starting-indent
-    (let [t0 ^BodyToken (nth text-accum 0)
-          t1 ^BodyToken (nth text-accum 1)]
+    (let [t0 ^BodyToken (nth body-accum 0)
+          t1 ^BodyToken (nth body-accum 1)]
       ; If the body part starts from something significant and not
       ; just whitespace and newline, we take indent of that.
-      ; Otherwise we have to search for it in the whole text-accum.
+      ; Otherwise we have to search for it in the whole body-accum.
       (if (or (.newline? t0)
               (and (.leading-ws? t0)
                    (.newline? t1)))
-        (find-starting-indent text-accum)
+        (find-starting-indent body-accum)
         starting-indent))))
 
-(defn- text-merge-starting-whitespace
-  "If `text-accum` starts with a leading whitespace
+(defn- merge-starting-whitespace
+  "If `body-accum` starts with a leading whitespace
   and a non-whitespace string, merges them together."
-  [text-accum]
-  (if (< (count text-accum) 2)
-    text-accum
-    (let [t0 ^BodyToken (nth text-accum 0)
-          t1 ^BodyToken (nth text-accum 1)]
+  [body-accum]
+  (if (< (count body-accum) 2)
+    body-accum
+    (let [t0 ^BodyToken (nth body-accum 0)
+          t1 ^BodyToken (nth body-accum 1)]
       (if (and (.leading-ws? t0)
                (string? (.contents t1))
                (not (.newline? t1)))
         ; FIXME: prepending is O(N).
         ; Need to use something more optimized.
         (into [(make-body-token (str (.contents t0) (.contents t1)))]
-              (subvec text-accum 2))
-        text-accum))))
+              (subvec body-accum 2))
+        body-accum))))
 
-(defn- text-merge-ending-whitespace
-  "If `text-accum` ends with a non-whitespace string and
+(defn- merge-ending-whitespace
+  "If `body-accum` ends with a non-whitespace string and
   a trailing whitespace, merges them together."
-  [text-accum]
-  (if (< (count text-accum) 2)
-    text-accum
-    (let [n-last (dec (count text-accum))
+  [body-accum]
+  (if (< (count body-accum) 2)
+    body-accum
+    (let [n-last (dec (count body-accum))
           n-prev (dec n-last)
-          t-last ^BodyToken (nth text-accum n-last)
-          t-prev ^BodyToken (nth text-accum n-prev)]
+          t-last ^BodyToken (nth body-accum n-last)
+          t-prev ^BodyToken (nth body-accum n-prev)]
       (if (and (.trailing-ws? t-last)
                (string? (.contents t-prev))
                (not (.newline? t-prev)))
         (conj
-          (subvec text-accum 0 n-prev)
+          (subvec body-accum 0 n-prev)
           (make-body-token (str (.contents t-prev) (.contents t-last))))
-        text-accum))))
+        body-accum))))
 
-(defn- text-trim-whitespace
+(defn- trim-whitespace
   "Removes excessive whitespace according to the following rules:
 
   - If the vector starts with a `\\newline`, the size of the
@@ -177,22 +177,22 @@
   - Any whitespace after a `\\newline` with more than `starting-indent`
     characters is truncated by this amount,
     otherwise it is discarded completely."
-  [text-accum starting-indent]
-    (let [common-indent (get-common-indent text-accum starting-indent)]
+  [body-accum starting-indent]
+    (let [common-indent (get-common-indent body-accum starting-indent)]
       (cond
-        (empty? text-accum) text-accum
-        (whitespace-only? text-accum)
-          (filterv (fn [^BodyToken token] (.newline? token)) text-accum)
-        :else (-> text-accum
+        (empty? body-accum) body-accum
+        (whitespace-only? body-accum)
+          (filterv (fn [^BodyToken token] (.newline? token)) body-accum)
+        :else (-> body-accum
           (trim-whitespace common-indent)
           trim-leading-newline
           trim-trailing-newline))))
 
-(defn text-postprocess
-  "Postprocess `text-accum` and return the final body part container."
-  [text-accum starting-indent]
-  (-> text-accum
-    text-merge-starting-whitespace
-    text-merge-ending-whitespace
-    (text-trim-whitespace starting-indent)
-    text-accum-finalize))
+(defn body-postprocess
+  "Postprocess `body-accum` and return the final body part container."
+  [body-accum starting-indent]
+  (-> body-accum
+    merge-starting-whitespace
+    merge-ending-whitespace
+    (trim-whitespace starting-indent)
+    body-accum-finalize))

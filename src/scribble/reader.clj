@@ -241,7 +241,7 @@
         [_ c] (reader-methods/reader-position reader)
         column (if (nil? c) 0 c)
         body-accum (read-body settings reader here-str)
-        body-part (text-postprocess body-accum column)]
+        body-part (body-postprocess body-accum column)]
     body-part))
 
 (defn- read-until
