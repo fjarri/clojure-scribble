@@ -65,47 +65,51 @@
               (boolean trailing-ws)))
 
 
+;; # Body part accumulator methods
+;;
+;; Body part accumulator is used to collect `BodyToken`s
+;; while reading the body part.
 
-(defn- text-accum-append
-  [text-accum s]
-  (conj text-accum s))
+(defn- body-accum-append
+  [body-accum s]
+  (conj body-accum s))
 
-(defn text-accum-finalize
-  [text-accum]
+(defn body-accum-finalize
+  [body-accum]
   (mapv
     (fn [^BodyToken token] (.contents token))
-    text-accum))
+    body-accum))
 
 
 (defn- append-trailing-ws
-  [text-accum s]
+  [body-accum s]
   (if (empty? s)
-    text-accum
-    (text-accum-append text-accum (make-body-token s :trailing-ws true))))
+    body-accum
+    (body-accum-append body-accum (make-body-token s :trailing-ws true))))
 
 (defn- append-string
-  [text-accum s]
+  [body-accum s]
   (if (empty? s)
-    text-accum
-    (text-accum-append text-accum (make-body-token s))))
+    body-accum
+    (body-accum-append body-accum (make-body-token s))))
 
 (defn- append-form
-  [text-accum f]
-  (text-accum-append text-accum (make-body-token f)))
+  [body-accum f]
+  (body-accum-append body-accum (make-body-token f)))
 
 (defn append-newline
-  [text-accum]
-  (text-accum-append text-accum (make-body-token "\n" :newline true)))
+  [body-accum]
+  (body-accum-append body-accum (make-body-token "\n" :newline true)))
 
 (defn dump-leading-ws
-  [text-accum str-accum]
-  (text-accum-append
-    text-accum
+  [body-accum str-accum]
+  (body-accum-append
+    body-accum
     (make-body-token (str-accum-finalize str-accum) :leading-ws true)))
 
 (defn- dump-string-verbatim
-  [text-accum str-accum]
-  (append-string text-accum (str-accum-finalize str-accum)))
+  [body-accum str-accum]
+  (append-string body-accum (str-accum-finalize str-accum)))
 
 (defn- split-trimr
   "Splits the string into two strings containing the trailing whitespace
@@ -121,14 +125,14 @@
 
 (defn dump-string
   "Joins `str-accum` in a string and attaches it to the end of
-  `text-accum`, returning the resulting vector.
+  `body-accum`, returning the resulting vector.
   If `str-accum` is empty, `vec-accum` is returned unchanged.
   If `separate-trailing-ws` is `true`, the string constructed from `str-accum`
   is split into the main part and the trailing whitespace part
   before the attachment to `vec-accum`."
-  [text-accum str-accum]
+  [body-accum str-accum]
   (let [[main-part trailing-ws] (split-trimr (str-accum-finalize str-accum))]
-    (-> text-accum
+    (-> body-accum
       (append-string main-part)
       (append-trailing-ws trailing-ws))))
 
@@ -139,22 +143,22 @@
 (defn dump-nested-form
   "Need to return `str-accum` because in case of the comment
   we do not want to break the string."
-  [text-accum str-accum nested-form leading-ws]
+  [body-accum str-accum nested-form leading-ws]
   (cond
     leading-ws
       (dump-nested-form
-        (dump-leading-ws text-accum str-accum) [] nested-form false)
+        (dump-leading-ws body-accum str-accum) [] nested-form false)
 
     ; it was a string: special case, append it to the accumulator
     (string? nested-form)
       ; FIXME: prepending is O(n)
-      [text-accum (vec (concat str-accum nested-form))]
+      [body-accum (vec (concat str-accum nested-form))]
 
     ; an actual form
     :else
-      (let [text-accum-with-str (dump-string-verbatim text-accum str-accum)
-            text-accum
+      (let [body-accum-with-str (dump-string-verbatim body-accum str-accum)
+            body-accum
               (if (::splice (meta nested-form))
-                (reduce append-form text-accum-with-str nested-form)
-                (append-form text-accum-with-str nested-form))]
-        [text-accum []])))
+                (reduce append-form body-accum-with-str nested-form)
+                (append-form body-accum-with-str nested-form))]
+        [body-accum []])))

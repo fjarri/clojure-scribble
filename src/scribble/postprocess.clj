@@ -62,7 +62,7 @@
             :else
               body-accum))))))
 
-(defn- trim-whitespace-pred
+(defn- trim-leading-whitespace-pred
   "The predicate for `trim-whitespace`.
   Checks if the contents of the `token` are leading whitespace
   and trims them by the value of `indent`.
@@ -75,11 +75,11 @@
         (make-body-token (subs (.contents token) indent) :leading-ws :true))
       token)))
 
-(defn- trim-whitespace
+(defn- trim-leading-whitespace
   "Trims leading `indent` characters from leading whitespace in `body-accum`"
   [body-accum indent]
   (filterv #(not (nil? %))
-    (map (partial trim-whitespace-pred indent) body-accum)))
+    (map (partial trim-leading-whitespace-pred indent) body-accum)))
 
 (defn- zip
   [seq1 seq2]
@@ -184,7 +184,7 @@
         (whitespace-only? body-accum)
           (filterv (fn [^BodyToken token] (.newline? token)) body-accum)
         :else (-> body-accum
-          (trim-whitespace common-indent)
+          (trim-leading-whitespace common-indent)
           trim-leading-newline
           trim-trailing-newline))))
 
