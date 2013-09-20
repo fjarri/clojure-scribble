@@ -1,4 +1,4 @@
-(defproject net.publicfields/scribble "0.1.0-SNAPSHOT"
+(defproject scribble "0.1.0-SNAPSHOT"
   :description "A Racket's Scribble sub-language implementation in Clojure"
   :url "http://github.com/Manticore/clojure-scribble"
   :license {:name "Eclipse Public License"

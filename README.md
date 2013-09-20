@@ -35,7 +35,7 @@ This was done because the newline-consuming comments are not needed too often, a
 
 ## Basic usage
 
-Add ``[net.publicfields/scribble "0.1.0"]`` to your project's dependencies.
+Add ``[scribble "0.1.0"]`` to your project's dependencies.
 The reader macro can be used in two ways:
 
 1. Namespace-wide extension of the reader:
