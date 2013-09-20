@@ -1,4 +1,8 @@
 ;; Containts the main part of the API.
+;;
+;; See [the GitHub repo](http://github.com/Manticore/clojure-scribble)
+;; for the usage information.
+;;
 (ns scribble.core
   (:use [chiara.reader.hacking :only [with-reader-macro]]
         [chiara.reader.macros :only [use-reader-macros]])

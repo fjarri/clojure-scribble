@@ -22,7 +22,7 @@
     (.trailing-ws? token)))
 
 (defn- whitespace-only?
-  "Returns `true` if `body-part` contains only `\\newline``s
+  "Returns `true` if `body-part` contains only `\\newline`s
   and strings of whitespace characters."
   [body-part]
   (every? whitespace-or-newline? body-part))
