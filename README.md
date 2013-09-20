@@ -96,6 +96,7 @@ There are several things that need to be done before this library can be safely 
 
 - Default characters for the reader need to be established.
   The current ones were only chosen to coincide with the original Scribble.
+- The container for the body part may be changed as well (or even become tunable through ``Settings``).
 - Currently when a ``Settings`` object is created, it does not check whether the characters passed to it are macro-terminating.
   This can lead to unexpected behavior in some cases.
 - To fix the previous issue, ``Settings`` may assign a stub reader macro for characters that are not currently in the reader macro table.
