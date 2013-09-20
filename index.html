@@ -2865,48 +2865,11 @@ net.brehaut.ClojureTools = (function (SH) {
     build_tree: build_tree
   };
 })(SyntaxHighlighter);
-</script><title>net.publicfields/scribble -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">net.publicfields/scribble</h1><h2 class="project-version">0.1.0-SNAPSHOT</h2><br /><p>A Racket's Scribble sub-language implementation in Clojure</p>
-</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.5.1</td></tr><tr><td class="dep-name">org.clojure/math.combinatorics</td><td class="dotted"><hr /></td><td class="dep-version">0.0.4</td></tr><tr><td class="dep-name">chiara</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0-SNAPSHOT</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#scribble.about">scribble.about</a></li><li><a href="#scribble.core">scribble.core</a></li><li><a href="#scribble.postprocess">scribble.postprocess</a></li><li><a href="#scribble.reader">scribble.reader</a></li><li><a href="#scribble.settings">scribble.settings</a></li><li><a href="#scribble.types">scribble.types</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.about" name="scribble.about"><h1 class="project-name">scribble.about</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><h1>Differences from Scribble</h1>
+</script><title>scribble -- Marginalia</title></head><body><table><tr><td class="docs"><div class="header"><h1 class="project-name">scribble</h1><h2 class="project-version">0.1.0-SNAPSHOT</h2><br /><p>A Racket's Scribble sub-language implementation in Clojure</p>
+</div><div class="dependencies"><h3>dependencies</h3><table><tr><td class="dep-name">org.clojure/clojure</td><td class="dotted"><hr /></td><td class="dep-version">1.5.1</td></tr><tr><td class="dep-name">org.clojure/math.combinatorics</td><td class="dotted"><hr /></td><td class="dep-version">0.0.4</td></tr><tr><td class="dep-name">chiara</td><td class="dotted"><hr /></td><td class="dep-version">0.2.0-SNAPSHOT</td></tr></table></div></td><td class="codes" style="text-align: center; vertical-align: middle;color: #666;padding-right:20px"><br /><br /><br />(this space intentionally left almost blank)</td></tr><tr><td class="docs"><div class="toc"><a name="toc"><h3>namespaces</h3></a><ul><li><a href="#scribble.core">scribble.core</a></li><li><a href="#scribble.postprocess">scribble.postprocess</a></li><li><a href="#scribble.reader">scribble.reader</a></li><li><a href="#scribble.settings">scribble.settings</a></li><li><a href="#scribble.types">scribble.types</a></li></ul></div></td><td class="codes">&nbsp;</td></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.core" name="scribble.core"><h1 class="project-name">scribble.core</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Containts the main part of the API.</p>
 
-<p>The syntax differs from
-<a href="http://docs.racket-lang.org/scribble/reader.html">Racket's Scribble</a>
-in several ways, partly to accommodate for Clojure syntax,
-partly for other reasons described below.</p>
-
-<p>First, to make the syntax slightly more general, any number of
-datum and body parts are allowed in the Scribble form.
-This was originally intended to allow mapping of multi-argument TeX macros
-such as <code>\frac{}{}</code> easily, but may be useful in other cases.
-For example, <code>@foo[:bar 2]{baz}{blah}</code> reads as
-<code>(foo :bar 2 ["baz"] ["blah"])</code>.</p>
-
-<p>As a result, we cannot just splice the contents of a body part into
-the parent Scribble form anymore.
-Every body form is thus wrapped in a vector (see the example above).
-Another consequence is that <code>@foo{}</code> reads as <code>(foo [])</code> and not as <code>foo</code>
-(if you want the latter, you may use just <code>@foo</code> or escaped <code>@`foo`</code>).</p>
-
-<p>The next difference is caused by the implementation.
-Any reader macros that follow the <code>@</code> are <em>not</em> applied to the whole
-Scribble form that starts with this <code>@</code>; rather they are applied
-to the form that follows them according to Clojure syntax.
-Our reader gets control only when the Clojure reader finishes,
-and uses the resulting form as a command.</p>
-
-<p>Since the same symbol is used for spliced commands and for escaped string,
-it is impossible to distinguish whether <code>@`-</code> starts a list of forms
-(e.g. <code>@`- 3 2`</code>), or an escaped string (like <code>@`-{blah}-`</code>).
-Therefore the escaped strings at the start of a Scribble form must
-use two escaping characters: <code>@``-{blah}-`</code>.</p>
-
-<p>Following from the previous difference, the empty spliced command must
-contain at least one whitespace symbol: <code>@foo{Alice@` `Bob}</code>.</p>
-
-<p>Finally, <code>@;</code> consumes characters only till the newline;
-the newline-consuming comment is written as <code>@;;</code>.
-This was done because the newline-consuming comments
-are not needed too often, and can be confusing.</p>
-</td><td class="codes"><pre class="brush: clojure">(ns scribble.about)</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.core" name="scribble.core"><h1 class="project-name">scribble.core</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Containts the main part of the API.</p>
+<p>See <a href="http://github.com/Manticore/clojure-scribble">the GitHub repo</a>
+for the usage information.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns scribble.core
   (:use [chiara.reader.hacking :only [with-reader-macro]]
         [chiara.reader.macros :only [use-reader-macros]])
@@ -2932,59 +2895,65 @@ are not needed too often, and can be confusing.</p>
 which remove redundant whitespace.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns scribble.postprocess
   (:require [scribble.types :refer :all])
-  (:import [scribble.types BodyToken]))</pre></td></tr><tr><td class="docs">
+  (:import [scribble.types BodyToken]))</pre></td></tr><tr><td class="docs"><p>Converts the body part to the final container
+  that is going to be emitted by the reader.</p>
+</td><td class="codes"><pre class="brush: clojure">(defn- body-part-finalize
+  [body-part]
+  (mapv
+    (fn [^BodyToken token] (.contents token))
+    body-part))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn- whitespace-or-newline?
   [^BodyToken token]
   (or
     (.newline? token)
     (.leading-ws? token)
-    (.trailing-ws? token)))</pre></td></tr><tr><td class="docs"><p>Returns <code>true</code> if <code>body-accum</code> contains only `\newline``s
+    (.trailing-ws? token)))</pre></td></tr><tr><td class="docs"><p>Returns <code>true</code> if <code>body-part</code> contains only <code>\newline</code>s
   and strings of whitespace characters.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- whitespace-only?
-  &quot;Returns `true` if `body-accum` contains only `\\newline``s
+  &quot;Returns `true` if `body-part` contains only `\\newline`s
   and strings of whitespace characters.&quot;
-  [body-accum]
-  (every? whitespace-or-newline? body-accum))</pre></td></tr><tr><td class="docs"><p>Trim (a possible whitespace string and) a newline string
-  from <code>body-accum</code>, if they are present.</p>
+  [body-part]
+  (every? whitespace-or-newline? body-part))</pre></td></tr><tr><td class="docs"><p>Trim (a possible whitespace string and) a newline string
+  from <code>body-part</code>, if they are present.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- trim-leading-newline
-  [body-accum]
-  (if (empty? body-accum)
-    body-accum
-    (let [^BodyToken t-first (nth body-accum 0)]
-      (if (= (count body-accum) 1)
+  [body-part]
+  (if (empty? body-part)
+    body-part
+    (let [^BodyToken t-first (nth body-part 0)]
+      (if (= (count body-part) 1)
         (if (.newline? t-first)
           []
-          body-accum)
-        (let [^BodyToken t-second (nth body-accum 1)]
+          body-part)
+        (let [^BodyToken t-second (nth body-part 1)]
           (cond
             (.newline? t-first)
-              (subvec body-accum 1)
+              (subvec body-part 1)
             (and (.leading-ws? t-first)
                  (.newline? t-second))
-              (subvec body-accum 2)
+              (subvec body-part 2)
             :else
-              body-accum))))))</pre></td></tr><tr><td class="docs"><p>Trim a newline string (and a possible whitespace string)
-  from <code>body-accum</code>, if they are present.</p>
+              body-part))))))</pre></td></tr><tr><td class="docs"><p>Trim a newline string (and a possible whitespace string)
+  from <code>body-part</code>, if they are present.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- trim-trailing-newline
-  [body-accum]
-  (if (empty? body-accum)
-    body-accum
-    (let [n-last (dec (count body-accum))
-          ^BodyToken t-last (nth body-accum n-last)]
-      (if (= (count body-accum) 1)
+  [body-part]
+  (if (empty? body-part)
+    body-part
+    (let [n-last (dec (count body-part))
+          ^BodyToken t-last (nth body-part n-last)]
+      (if (= (count body-part) 1)
         (if (.newline? t-last)
           []
-          body-accum)
+          body-part)
         (let [n-prev (dec n-last)
-              ^BodyToken t-prev (nth body-accum n-prev)]
+              ^BodyToken t-prev (nth body-part n-prev)]
           (cond
             (.newline? t-last)
-              (subvec body-accum 0 n-last)
+              (subvec body-part 0 n-last)
             (and (.leading-ws? t-last)
                  (.newline? t-prev))
-              (subvec body-accum 0 n-prev)
+              (subvec body-part 0 n-prev)
             :else
-              body-accum))))))</pre></td></tr><tr><td class="docs"><p>The predicate for <code>trim-whitespace</code>.
+              body-part))))))</pre></td></tr><tr><td class="docs"><p>The predicate for <code>trim-whitespace</code>.
   Checks if the contents of the <code>token</code> are leading whitespace
   and trims them by the value of <code>indent</code>.
   Returns <code>nil</code>, if the leading whitespace is too small,
@@ -2995,11 +2964,11 @@ which remove redundant whitespace.</p>
     (if (.leading-ws? token)
       (when (&gt; (count (.contents token)) indent)
         (make-body-token (subs (.contents token) indent) :leading-ws :true))
-      token)))</pre></td></tr><tr><td class="docs"><p>Trims leading <code>indent</code> characters from leading whitespace in <code>body-accum</code></p>
+      token)))</pre></td></tr><tr><td class="docs"><p>Trims leading <code>indent</code> characters from leading whitespace in <code>body-part</code></p>
 </td><td class="codes"><pre class="brush: clojure">(defn- trim-leading-whitespace
-  [body-accum indent]
+  [body-part indent]
   (filterv #(not (nil? %))
-    (map (partial trim-leading-whitespace-pred indent) body-accum)))</pre></td></tr><tr><td class="docs">
+    (map (partial trim-leading-whitespace-pred indent) body-part)))</pre></td></tr><tr><td class="docs">
 </td><td class="codes"><pre class="brush: clojure">(defn- zip
   [seq1 seq2]
   (map (fn [a b] [a b]) seq1 seq2))</pre></td></tr><tr><td class="docs"><p>Of all leading whitespace tokens, which are:</p>
@@ -3011,9 +2980,9 @@ which remove redundant whitespace.</p>
 <p>we select the smallest one.</p></li>
 </ul>
 </td><td class="codes"><pre class="brush: clojure">(defn- find-starting-indent
-  [body-accum]
-  (let [ws-candidates (subvec body-accum 0 (dec (count body-accum)))
-        next-elems (subvec body-accum 1)
+  [body-part]
+  (let [ws-candidates (subvec body-part 0 (dec (count body-part)))
+        next-elems (subvec body-part 1)
         ; Filter all leading whitespaces followed by something significant
         filter-pred
           (fn [[^BodyToken elem ^BodyToken next-elem]]
@@ -3027,58 +2996,57 @@ which remove redundant whitespace.</p>
         ws-lengths (map map-pred ws-pairs)]
     (if (empty? ws-lengths)
       0
-      (reduce min ws-lengths))))</pre></td></tr><tr><td class="docs"><p>Returns the common indentation for <code>body-accum</code>
+      (reduce min ws-lengths))))</pre></td></tr><tr><td class="docs"><p>Returns the common indentation for <code>body-part</code>
   that can be trimmed.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- get-common-indent
-  [body-accum starting-indent]
-  (if (&lt; (count body-accum) 2)
+  [body-part starting-indent]
+  (if (&lt; (count body-part) 2)
     starting-indent
-    (let [t0 ^BodyToken (nth body-accum 0)
-          t1 ^BodyToken (nth body-accum 1)]
+    (let [t0 ^BodyToken (nth body-part 0)
+          t1 ^BodyToken (nth body-part 1)]
       ; If the body part starts from something significant and not
       ; just whitespace and newline, we take indent of that.
-      ; Otherwise we have to search for it in the whole body-accum.
+      ; Otherwise we have to search for it in the whole body-part.
       (if (or (.newline? t0)
               (and (.leading-ws? t0)
                    (.newline? t1)))
-        (find-starting-indent body-accum)
-        starting-indent))))</pre></td></tr><tr><td class="docs"><p>If <code>body-accum</code> starts with a leading whitespace
+        (find-starting-indent body-part)
+        starting-indent))))</pre></td></tr><tr><td class="docs"><p>If <code>body-part</code> starts with a leading whitespace
   and a non-whitespace string, merges them together.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- merge-starting-whitespace
-  [body-accum]
-  (if (&lt; (count body-accum) 2)
-    body-accum
-    (let [t0 ^BodyToken (nth body-accum 0)
-          t1 ^BodyToken (nth body-accum 1)]
+  [body-part]
+  (if (&lt; (count body-part) 2)
+    body-part
+    (let [t0 ^BodyToken (nth body-part 0)
+          t1 ^BodyToken (nth body-part 1)]
       (if (and (.leading-ws? t0)
                (string? (.contents t1))
                (not (.newline? t1)))
-        ; FIXME: prepending is O(N).
-        ; Need to use something more optimized.
-        (into [(make-body-token (str (.contents t0) (.contents t1)))]
-              (subvec body-accum 2))
-        body-accum))))</pre></td></tr><tr><td class="docs"><p>If <code>body-accum</code> ends with a non-whitespace string and
+        (assoc (subvec body-part 1)
+               0
+               (make-body-token (str (.contents t0) (.contents t1))))
+        body-part))))</pre></td></tr><tr><td class="docs"><p>If <code>body-part</code> ends with a non-whitespace string and
   a trailing whitespace, merges them together.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- merge-ending-whitespace
-  [body-accum]
-  (if (&lt; (count body-accum) 2)
-    body-accum
-    (let [n-last (dec (count body-accum))
+  [body-part]
+  (if (&lt; (count body-part) 2)
+    body-part
+    (let [n-last (dec (count body-part))
           n-prev (dec n-last)
-          t-last ^BodyToken (nth body-accum n-last)
-          t-prev ^BodyToken (nth body-accum n-prev)]
+          t-last ^BodyToken (nth body-part n-last)
+          t-prev ^BodyToken (nth body-part n-prev)]
       (if (and (.trailing-ws? t-last)
                (string? (.contents t-prev))
                (not (.newline? t-prev)))
         (conj
-          (subvec body-accum 0 n-prev)
+          (subvec body-part 0 n-prev)
           (make-body-token (str (.contents t-prev) (.contents t-last))))
-        body-accum))))</pre></td></tr><tr><td class="docs"><p>Removes excessive whitespace according to the following rules:</p>
+        body-part))))</pre></td></tr><tr><td class="docs"><p>Removes excessive whitespace according to the following rules:</p>
 
 <ul>
-<li>If the vector starts with a <code>\newline</code>, the size of the
+<li>If the body part starts with a <code>\newline</code>, the size of the
 maximum common whitespace is used instead of <code>starting-indent</code>.</li>
-<li>If the vector only contains <code>\newline</code>s and whitespace,
+<li>If the body part only contains <code>\newline</code>s and whitespace,
 everything except <code>\newline</code>s is discarded.</li>
 <li>Otherwise if it starts with (maybe some whitespace and) <code>\newline</code>,
 or ends with <code>\newline</code> (and maybe some whitespace), these are discarded.</li>
@@ -3089,9 +3057,9 @@ otherwise it is discarded completely.</li>
 </ul>
 </td><td class="codes"><pre class="brush: clojure">(defn- trim-whitespace
   &quot;Removes excessive whitespace according to the following rules:
-  - If the vector starts with a `\\newline`, the size of the
+  - If the body part starts with a `\\newline`, the size of the
     maximum common whitespace is used instead of `starting-indent`.
-  - If the vector only contains `\\newline`s and whitespace,
+  - If the body part only contains `\\newline`s and whitespace,
     everything except `\\newline`s is discarded.
   - Otherwise if it starts with (maybe some whitespace and) `\\newline`,
     or ends with `\\newline` (and maybe some whitespace), these are discarded.
@@ -3099,23 +3067,24 @@ otherwise it is discarded completely.</li>
   - Any whitespace after a `\\newline` with more than `starting-indent`
     characters is truncated by this amount,
     otherwise it is discarded completely.&quot;
-  [body-accum starting-indent]
-    (let [common-indent (get-common-indent body-accum starting-indent)]
+  [body-part starting-indent]
+    (let [common-indent (get-common-indent body-part starting-indent)]
       (cond
-        (empty? body-accum) body-accum
-        (whitespace-only? body-accum)
-          (filterv (fn [^BodyToken token] (.newline? token)) body-accum)
-        :else (-&gt; body-accum
+        (empty? body-part) body-part
+        (whitespace-only? body-part)
+          (filterv (fn [^BodyToken token] (.newline? token)) body-part)
+        :else (-&gt; body-part
           (trim-leading-whitespace common-indent)
           trim-leading-newline
           trim-trailing-newline))))</pre></td></tr><tr><td class="docs"><p>Postprocess <code>body-accum</code> and return the final body part container.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn body-postprocess
   [body-accum starting-indent]
   (-&gt; body-accum
+    body-accum-finalize
     merge-starting-whitespace
     merge-ending-whitespace
     (trim-whitespace starting-indent)
-    body-accum-finalize))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.reader" name="scribble.reader"><h1 class="project-name">scribble.reader</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Contains the main reader macro and readers for nested special forms.</p>
+    body-part-finalize))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr><tr><td class="docs"><div class="docs-header"><a class="anchor" href="#scribble.reader" name="scribble.reader"><h1 class="project-name">scribble.reader</h1><a class="toc-link" href="#toc">toc</a></a></div></td><td class="codes" /></tr><tr><td class="docs"><p>Contains the main reader macro and readers for nested special forms.</p>
 </td><td class="codes"><pre class="brush: clojure">(ns scribble.reader
   (:use [clojure.set :only [intersection]])
   (:require [chiara.reader.utils :as reader-methods]
@@ -3157,7 +3126,7 @@ but that would require creation and destructuring of a vector
   (if leading-ws
     (make-str-accum c)
     (str-accum-push str-accum c)))</pre></td></tr><tr><td class="docs">
-</td><td class="codes"><pre class="brush: clojure">(declare read-entry)</pre></td></tr><tr><td class="docs"><p>Returns a vector of strings and nested forms.
+</td><td class="codes"><pre class="brush: clojure">(declare read-entry)</pre></td></tr><tr><td class="docs"><p>Returns a <code>body-accum</code> containing tokens with strings and nested forms.
   The strings are separated as
   [leading whitespace, contents, trailing whitespace, newline]
   (for the ease of further processing).</p>
@@ -3646,43 +3615,44 @@ but would require <code>O(n)</code> time to obtain during the postprocessing.</p
 
 <p>Body part accumulator is used to collect <code>BodyToken</code>s
 while reading the body part.</p>
-</td><td class="codes"></td></tr><tr><td class="docs">
+</td><td class="codes"></td></tr><tr><td class="docs"><p>Creates an empty body part accumulator.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn make-body-accum
   []
-  [])</pre></td></tr><tr><td class="docs">
+  [])</pre></td></tr><tr><td class="docs"><p>Adds a token to the end of the accumulator.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- body-accum-push
-  [body-accum s]
-  (conj body-accum s))</pre></td></tr><tr><td class="docs">
+  [body-accum token]
+  (conj body-accum token))</pre></td></tr><tr><td class="docs"><p>Converts the accumulator to a data structure
+  more suitable for postprocessing.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn body-accum-finalize
   [body-accum]
-  (mapv
-    (fn [^BodyToken token] (.contents token))
-    body-accum))</pre></td></tr><tr><td class="docs"><h1>Body and string accumulator helpers</h1>
-
-<p>Auxiliary functions for different cases of updating
-body and/or string accumulators.</p>
-</td><td class="codes"></td></tr><tr><td class="docs">
+  body-accum)</pre></td></tr><tr><td class="docs"><h1>Body accumulator helpers</h1>
+</td><td class="codes"></td></tr><tr><td class="docs"><p>Wraps a string of trailing whitespace in a token
+  and adds it to the accumulator.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- push-trailing-ws
   [body-accum s]
   (if (empty? s)
     body-accum
-    (body-accum-push body-accum (make-body-token s :trailing-ws true))))</pre></td></tr><tr><td class="docs">
+    (body-accum-push body-accum (make-body-token s :trailing-ws true))))</pre></td></tr><tr><td class="docs"><p>If the given string is non-empty, wraps it in a token
+  and adds it to the accumulator.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- push-string
   [body-accum s]
   (if (empty? s)
     body-accum
-    (body-accum-push body-accum (make-body-token s))))</pre></td></tr><tr><td class="docs">
+    (body-accum-push body-accum (make-body-token s))))</pre></td></tr><tr><td class="docs"><p>Wraps an arbitrary form in a token and adds it to the accumulator.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- push-form
   [body-accum f]
-  (body-accum-push body-accum (make-body-token f)))</pre></td></tr><tr><td class="docs">
+  (body-accum-push body-accum (make-body-token f)))</pre></td></tr><tr><td class="docs"><p>Wraps a newline in a token and adds it to the accumulator.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn push-newline
   [body-accum]
-  (body-accum-push body-accum (make-body-token &quot;\n&quot; :newline true)))</pre></td></tr><tr><td class="docs">
+  (body-accum-push body-accum (make-body-token &quot;\n&quot; :newline true)))</pre></td></tr><tr><td class="docs"><h1>Body- and string-accumulator combined updaters</h1>
+</td><td class="codes"></td></tr><tr><td class="docs"><p>Finalizes a string accumulator containing leading whitespace
+  and pushes it to the body accumulator.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn dump-leading-ws
   [body-accum str-accum]
   (body-accum-push
     body-accum
-    (make-body-token (str-accum-finalize str-accum) :leading-ws true)))</pre></td></tr><tr><td class="docs">
+    (make-body-token (str-accum-finalize str-accum) :leading-ws true)))</pre></td></tr><tr><td class="docs"><p>Finalizes a string accumulator containing an arbitrary string
+  and pushes it to the body accumulator.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn- dump-string-verbatim
   [body-accum str-accum]
   (push-string body-accum (str-accum-finalize str-accum)))</pre></td></tr><tr><td class="docs"><p>Splits the string into two strings containing the trailing whitespace
@@ -3695,10 +3665,10 @@ body and/or string accumulators.</p>
         count-trimmed (count trimmed-s)]
     (if (= count-full count-trimmed)
       [s &quot;&quot;]
-      [trimmed-s (subs s count-trimmed)])))</pre></td></tr><tr><td class="docs"><p>Joins <code>str-accum</code> in a string and attaches it to the end of
-  <code>body-accum</code>, returning the resulting vector.
+      [trimmed-s (subs s count-trimmed)])))</pre></td></tr><tr><td class="docs"><p>Finalizes a string accumulator containing an arbitrary string
+  and pushes it to the body accumulator.
   If <code>str-accum</code> is empty, <code>body-accum</code> is returned unchanged.
-  If <code>separate-trailing-ws</code> is <code>true</code>, the string constructed from <code>str-accum</code>
+  Otherwise, the string constructed from <code>str-accum</code>
   is split into the main part and the trailing whitespace part
   before the attachment to <code>body-accum</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn dump-string
@@ -3706,11 +3676,14 @@ body and/or string accumulators.</p>
   (let [[main-part trailing-ws] (split-trimr (str-accum-finalize str-accum))]
     (-&gt; body-accum
       (push-string main-part)
-      (push-trailing-ws trailing-ws))))</pre></td></tr><tr><td class="docs">
+      (push-trailing-ws trailing-ws))))</pre></td></tr><tr><td class="docs"><p>Marks the list to be spliced in the body part
+  in the parent call to <code>read-body</code>.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn mark-for-splice
   [l]
-  (with-meta l {::splice true}))</pre></td></tr><tr><td class="docs"><p>Need to return <code>str-accum</code> because in case of the comment
-  we do not want to break the string.</p>
+  (with-meta l {::splice true}))</pre></td></tr><tr><td class="docs"><p>Pushes an arbitrary form to the accumulator,
+  possibly finalizing and pushing the string accumulator first.
+  Splices the list into the body accumulator, if it is marked with
+  the corresponding meta tag.</p>
 </td><td class="codes"><pre class="brush: clojure">(defn dump-nested-form
   [body-accum str-accum nested-form leading-ws]
   (cond
@@ -3731,7 +3704,7 @@ body and/or string accumulators.</p>
               (if (::splice (meta nested-form))
                 (reduce push-form body-accum-with-str nested-form)
                 (push-form body-accum-with-str nested-form))]
-        [body-accum (make-str-accum)])))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr></table><div class="footer">Generated by <a href="https://github.com/fogus/marginalia">Marginalia</a>.&nbsp;&nbsp;Syntax highlighting provided by Alex Gorbatchev's <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a>marginalia.html$floating_toc_html@31672113</div><script type="text/javascript">SyntaxHighlighter.defaults['gutter'] = false;
+        [body-accum (make-str-accum)])))</pre></td></tr><tr><td class="spacer docs">&nbsp;</td><td class="codes" /></tr></table><div class="footer">Generated by <a href="https://github.com/fogus/marginalia">Marginalia</a>.&nbsp;&nbsp;Syntax highlighting provided by Alex Gorbatchev's <a href="http://alexgorbatchev.com/SyntaxHighlighter/">SyntaxHighlighter</a>marginalia.html$floating_toc_html@342f7cfe</div><script type="text/javascript">SyntaxHighlighter.defaults['gutter'] = false;
 SyntaxHighlighter.all();
 
 // hackity hack
