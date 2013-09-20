@@ -17,5 +17,6 @@
         [perforate "0.3.3"] ; run performance tests, 'lein perforate'
         ]
       :resource-paths ["test_resources"]
-      }}
+      }
+    :uberjar {:aot :all}}
   :main scribble.core)
