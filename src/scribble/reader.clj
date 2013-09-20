@@ -55,7 +55,7 @@
 (declare read-entry)
 
 (defn- read-body
-  "Returns a vector of strings and nested forms.
+  "Returns a `body-accum` containing tokens with strings and nested forms.
   The strings are separated as
   [leading whitespace, contents, trailing whitespace, newline]
   (for the ease of further processing)."

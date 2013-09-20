@@ -71,52 +71,64 @@
 ;; while reading the body part.
 
 (defn make-body-accum
+  "Creates an empty body part accumulator."
   []
   [])
 
 (defn- body-accum-push
-  [body-accum s]
-  (conj body-accum s))
+  "Adds a token to the end of the accumulator."
+  [body-accum token]
+  (conj body-accum token))
 
 (defn body-accum-finalize
+  "Converts the accumulator to a data structure
+  more suitable for postprocessing."
   [body-accum]
-  (mapv
-    (fn [^BodyToken token] (.contents token))
-    body-accum))
+  body-accum)
 
 
-;; # Body and string accumulator helpers
-;;
-;; Auxiliary functions for different cases of updating
-;; body and/or string accumulators.
+;; # Body accumulator helpers
 
 (defn- push-trailing-ws
+  "Wraps a string of trailing whitespace in a token
+  and adds it to the accumulator."
   [body-accum s]
   (if (empty? s)
     body-accum
     (body-accum-push body-accum (make-body-token s :trailing-ws true))))
 
 (defn- push-string
+  "If the given string is non-empty, wraps it in a token
+  and adds it to the accumulator."
   [body-accum s]
   (if (empty? s)
     body-accum
     (body-accum-push body-accum (make-body-token s))))
 
 (defn- push-form
+  "Wraps an arbitrary form in a token and adds it to the accumulator."
   [body-accum f]
   (body-accum-push body-accum (make-body-token f)))
 
 (defn push-newline
+  "Wraps a newline in a token and adds it to the accumulator."
   [body-accum]
   (body-accum-push body-accum (make-body-token "\n" :newline true)))
 
+
+;; # Body- and string-accumulator combined updaters
+
 (defn dump-leading-ws
+  "Finalizes a string accumulator containing leading whitespace
+  and pushes it to the body accumulator."
   [body-accum str-accum]
   (body-accum-push
     body-accum
     (make-body-token (str-accum-finalize str-accum) :leading-ws true)))
 
 (defn- dump-string-verbatim
+  "Finalizes a string accumulator containing an arbitrary string
+  and pushes it to the body accumulator."
   [body-accum str-accum]
   (push-string body-accum (str-accum-finalize str-accum)))
 
@@ -133,10 +145,10 @@
       [trimmed-s (subs s count-trimmed)])))
 
 (defn dump-string
-  "Joins `str-accum` in a string and attaches it to the end of
-  `body-accum`, returning the resulting vector.
+  "Finalizes a string accumulator containing an arbitrary string
+  and pushes it to the body accumulator.
   If `str-accum` is empty, `body-accum` is returned unchanged.
-  If `separate-trailing-ws` is `true`, the string constructed from `str-accum`
+  Otherwise, the string constructed from `str-accum`
   is split into the main part and the trailing whitespace part
   before the attachment to `body-accum`."
   [body-accum str-accum]
@@ -146,12 +158,16 @@
       (push-trailing-ws trailing-ws))))
 
 (defn mark-for-splice
+  "Marks the list to be spliced in the body part
+  in the parent call to `read-body`."
   [l]
   (with-meta l {::splice true}))
 
 (defn dump-nested-form
-  "Need to return `str-accum` because in case of the comment
-  we do not want to break the string."
+  "Pushes an arbitrary form to the accumulator,
+  possibly finalizing and pushing the string accumulator first.
+  Splices the list into the body accumulator, if it is marked with
+  the corresponding meta tag."
   [body-accum str-accum nested-form leading-ws]
   (cond
     leading-ws
